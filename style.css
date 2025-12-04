@@ -1,0 +1,258 @@
+/* ========================================
+   TIPOGRAFÍA PERSONALIZADA
+   ======================================== */
+
+@font-face {
+    font-family: 'Panamericana';
+    src: url('fonts/Panamericana-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+}
+
+@font-face {
+    font-family: 'Panamericana';
+    src: url('fonts/Panamericana-Italic.ttf') format('truetype');
+    font-weight: 400;
+    font-style: italic;
+}
+
+@font-face {
+    font-family: 'Panamericana';
+    src: url('fonts/Panamericana-SemiBold.ttf') format('truetype');
+    font-weight: 600;
+    font-style: normal;
+}
+
+/* ========================================
+   PALETA DE COLORES
+   ======================================== */
+
+:root {
+    /* Colores Institucionales */
+    --color-dorado: #B9975B;
+    /* Institucional/Tradición */
+    --color-azul: #002D72;
+    /* Preparatoria/Prudencia */
+    --color-vino: #7a1a37;
+    /* Licenciatura/Fortaleza */
+    --color-verde: #215347;
+    /* Posgrados/Esperanza */
+    --color-verde-azulado: #00685E;
+    --color-negro: #000000;
+    --color-blanco: #FFFFFF;
+
+    /* Alias para diseño minimalista */
+    --color-primario: var(--color-verde);
+    /* Verde Posgrados */
+    --color-acento: var(--color-dorado);
+    /* Dorado Institucional */
+    --color-texto: #2c2c2c;
+    --color-texto-claro: #666666;
+    --color-fondo: var(--color-blanco);
+    --color-header-bg: rgba(255, 255, 255, 0.98);
+
+    /* Tipografía */
+    --font-family: 'Panamericana', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* ========================================
+   SCROLLYTELLING BASE STYLES
+   ======================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-family);
+    font-weight: 400;
+    color: var(--color-texto);
+    background-color: var(--color-fondo);
+    line-height: 1.8;
+}
+
+/* Clases de tipografía */
+.text-semibold {
+    font-weight: 600;
+}
+
+.text-italic {
+    font-style: italic;
+}
+
+
+/* ========================================
+   SECCIONES
+   ======================================== */
+
+/* Sección de introducción - Minimalista */
+#intro {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 4rem 2rem;
+    text-align: center;
+    background-color: var(--color-fondo);
+}
+
+#intro .logo-container {
+    margin-bottom: 2rem;
+}
+
+#intro .logo {
+    height: 300px;
+    width: auto;
+    object-fit: contain;
+}
+
+#intro h1 {
+    font-size: 3.5rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: var(--color-primario);
+    letter-spacing: -0.02em;
+    max-width: 900px;
+}
+
+#intro p {
+    font-size: 1.25rem;
+    color: var(--color-texto-claro);
+    max-width: 600px;
+    margin-bottom: 0.5rem;
+}
+
+/* Sección de agradecimiento - Mantener estilo original */
+#outro {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    text-align: center;
+    background: linear-gradient(135deg, var(--color-dorado), #d4af6a);
+    color: var(--color-blanco);
+}
+
+#outro h2 {
+    font-size: 2.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+#outro p {
+    font-size: 1.2rem;
+}
+
+/* Scrollytelling section */
+#scrolly {
+    position: relative;
+    display: flex;
+    padding: 0;
+}
+
+#scrolly figure {
+    position: sticky;
+    top: 0;
+    left: 0;
+    width: 60%;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--color-fondo);
+    border-right: 1px solid rgba(33, 83, 71, 0.1);
+}
+
+#scrolly article {
+    width: 40%;
+    padding: 2rem;
+}
+
+.step {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 3rem 2rem;
+    margin-bottom: 3rem;
+    border-left: 3px solid transparent;
+    transition: all 0.4s ease;
+}
+
+.step.is-active {
+    background-color: rgba(33, 83, 71, 0.02);
+    border-left-color: var(--color-primario);
+}
+
+.step h2 {
+    color: var(--color-primario);
+    font-weight: 600;
+    margin-bottom: 1.25rem;
+    font-size: 2.25rem;
+    letter-spacing: -0.01em;
+}
+
+.step p {
+    font-size: 1.125rem;
+    color: var(--color-texto-claro);
+    line-height: 1.8;
+    max-width: 500px;
+    margin-bottom: 1.25rem;
+    /* Espacio entre párrafos */
+}
+
+.step p:last-child {
+    margin-bottom: 0;
+}
+
+.step ul {
+    margin: 1rem 0;
+    padding-left: 1.5rem;
+}
+
+.step li {
+    font-size: 1.125rem;
+    color: var(--color-texto-claro);
+    line-height: 1.8;
+    margin-bottom: 0.75rem;
+}
+
+/* Visualización */
+#vis {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#vis svg {
+    max-width: 100%;
+    max-height: 100%;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    #scrolly {
+        flex-direction: column;
+    }
+
+    #scrolly figure {
+        width: 100%;
+        position: relative;
+        height: 60vh;
+    }
+
+    #scrolly article {
+        width: 100%;
+    }
+
+    .step {
+        min-height: 50vh;
+    }
+}

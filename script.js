@@ -1,42 +1,98 @@
 // ========================================
 // PALETA DE COLORES PARA GRÁFICAS D3.js
 // ========================================
-
 const colorPalette = {
-    // Colores principales
-    azulOscuro: '#002D72',
-    rojoVino: '#8A1538',
-    verdeOscuro: '#215347',
-    verdeAzulado: '#00685E',
-    dorado: '#B9975B',
-    negro: '#000000',
-    blanco: '#FFFFFF',
+    // --- 1. STORY PALETTE (Semántica Narrativa) ---
+    // Úsala cuando el dato tiene una carga moral o narrativa específica.
+    story: {
+        crisis: '#8A1538',      // Vino Institucional (El problema, el rezago)
+        crisisHighlight: '#C41E3A', // Rojo Alerta (Para puntos específicos o énfasis máximo)
+        hope: '#215347',        // Verde Posgrados (La solución, el modelo RAPID)
+        value: '#B9975B',       // Dorado (Dinero, PIB, Valor Económico)
+        context: '#A8B6CC',     // Gris Azulado (Datos de fondo, promedio OCDE)
+        textMain: '#002D72',    // Azul Oscuro (Títulos y texto principal)
+        background: '#F4F6F8'   // Gris muy pálido (Fondo de gráficos)
+    },
 
-    // Alias para uso común
-    primario: '#215347',        // Verde Posgrados
-    secundario: '#8A1538',
-    acento1: '#00685E',
-    acento2: '#B9975B',         // Dorado Institucional
+    // --- 2. CATEGORICAL PALETTE (Alto Contraste) ---
+    // 8 colores diseñados para usarse en orden. 
+    // Patrón: Oscuro -> Claro -> Oscuro -> Claro. 
+    // Garantiza que barras o rebanadas adyacentes siempre tengan contraste visual.
+    categorical: [
+        '#A8B6CC', // 4. Gris Lavanda (Claro - contraste alto vs Verde)
+        '#002D72', // 1. Azul Oscuro (Base fuerte)
+        '#E5C585', // 2. Arena Dorado (Claro - contraste alto vs Azul)
+        '#215347', // 3. Verde Posgrados (Oscuro - contraste alto vs Arena)
+        '#8A1538', // 5. Rojo Vino (Oscuro - contraste alto vs Gris)
+        '#4DA99C', // 6. Teal Menta (Claro - contraste alto vs Vino)
+        '#2D3E50', // 7. Slate Profundo (Oscuro - contraste alto vs Teal)
+        '#B9975B'  // 8. Dorado Institucional (Medio/Claro - cierre)
+    ],
 
-    // Arrays para usar en escalas de colores D3
-    coloresPrincipales: ['#215347', '#B9975B', '#002D72', '#00685E', '#8A1538'],
-    coloresCategoricos: ['#215347', '#B9975B', '#00685E', '#002D72', '#8A1538'],
-    coloresSecuenciales: ['#B9975B', '#00685E', '#215347', '#8A1538', '#002D72'],
+    // --- 3. DIVERGENT PALETTE (Semáforo Institucional) ---
+    // Interpolación: Rojo Vino -> Blanco Neutro -> Verde Posgrados
+    // Uso: Gráficos de desviación (pérdida vs ganancia).
+    divergent: [
+        '#580E24', // 1. Rojo Vino Profundo (Muy negativo)
+        '#8A1538', // 2. Rojo Vino Base
+        '#B34D63', // 3. Rojo medio
+        '#D68A99', // 4. Rojo claro
+        '#F2D4DA', // 5. Rojo pálido (Ligeramente negativo)
+        '#D6E6E3', // 6. Verde pálido (Ligeramente positivo)
+        '#8FBDB6', // 7. Verde medio claro
+        '#00685E', // 8. Verde Azulado
+        '#215347', // 9. Verde Posgrados
+        '#0E2922'  // 10. Verde Profundo (Excelencia)
+    ],
 
-    // Función helper para obtener una escala de colores D3
-    getD3ColorScale: function (type = 'ordinal') {
-        if (type === 'ordinal' || type === 'categorical') {
-            return d3.scaleOrdinal(this.coloresCategoricos);
-        } else if (type === 'sequential') {
-            return d3.scaleSequential()
-                .interpolator(d3.interpolateRgbBasis(this.coloresSecuenciales));
-        } else if (type === 'diverging') {
-            return d3.scaleDiverging()
-                .interpolator(d3.interpolateRgbBasis([this.rojoVino, this.blanco, this.primario]));
+    // --- 4. POSITIVE SEQUENTIAL (Rampa de Valor/Esperanza) ---
+    // Interpolación: Blanco -> Dorado -> Verde
+    // Uso: Mapas de calor de cosas buenas (ej. Cobertura, Escolaridad).
+    positiveSequential: [
+        '#FFFFFF', // Inicio (Vacío)
+        '#F3EAD8', // Transición suave
+        '#B9975B', // Medio (Dorado)
+        '#00685E', // Transición Teal
+        '#215347'  // Fin (Verde Fuerte)
+    ],
+
+    // --- 5. NEGATIVE SEQUENTIAL (Rampa de Alerta) ---
+    // Interpolación: Blanco -> Salmón -> Vino
+    // Uso: Mapas de calor de cosas malas (ej. Deserción, Pobreza de Aprendizaje).
+    negativeSequential: [
+        '#FFFFFF', // Inicio (Vacío)
+        '#F2D4DA', // Rosado pálido
+        '#D68A99', // Rojo medio
+        '#8A1538', // Fin (Vino Fuerte)
+        '#42080F'  // Extra Dark (Para valores extremos fuera de escala)
+    ],
+
+    // --- HELPERS (Generadores de Escalas D3) ---
+    // Pasa estas funciones a tus escalas d3 (domain se define en el gráfico).
+    getScale: function (type) {
+        switch (type) {
+            case 'categorical':
+                return d3.scaleOrdinal(this.categorical);
+
+            case 'divergent':
+                // Requiere dominio de 3 puntos: [min, centro, max]
+                return d3.scaleDiverging()
+                    .interpolator(d3.interpolateRgbBasis(this.divergent));
+
+            case 'seq-positive':
+                return d3.scaleSequential()
+                    .interpolator(d3.interpolateRgbBasis(this.positiveSequential));
+
+            case 'seq-negative':
+                return d3.scaleSequential()
+                    .interpolator(d3.interpolateRgbBasis(this.negativeSequential));
+
+            default:
+                return d3.scaleOrdinal(this.categorical);
         }
-        return d3.scaleOrdinal(this.coloresPrincipales);
     }
 };
+
 
 // ========================================
 // SCROLLYTELLING - VISUALIZACIONES D3.js
@@ -110,15 +166,15 @@ function drawCalendarHeatmap(substep = 1) {
 
     // Colores por año (paleta institucional con contraste RGB)
     const yearColors = {
-        2019: colorPalette.acento2,      // Dorado #B9975B
-        2020: colorPalette.azulOscuro,   // Azul #002D72 (opuesto al dorado)
-        2021: colorPalette.rojoVino,     // Vino #8A1538 (opuesto al verde)
-        2022: colorPalette.verdeOscuro   // Verde #215347 (opuesto al rojo)
+        2019: colorPalette.categorical[0],  // Dorado #B9975B
+        2020: colorPalette.categorical[1],  // Azul #002D72 (opuesto al dorado)
+        2021: colorPalette.categorical[2],  // Vino #8A1538 (opuesto al verde)
+        2022: colorPalette.categorical[3]   // Verde #215347 (opuesto al rojo)
     };
 
     // Función para obtener color de fondo por año
     function getYearColor(year) {
-        return yearColors[year] || colorPalette.acento2;
+        return yearColors[year] || colorPalette.categorical[0];
     }
 
     // Título
@@ -128,7 +184,7 @@ function drawCalendarHeatmap(substep = 1) {
         .attr('text-anchor', 'middle')
         .attr('font-size', '20px')
         .attr('font-weight', '600')
-        .attr('fill', colorPalette.primario)
+        .attr('fill', colorPalette.story.textMain)
         .text('Clases 2019-2022');
 
     // Dibujar días como rectángulos
@@ -199,12 +255,12 @@ function updateCalendarColors(progress) {
 // Helper para obtener color de año en update
 function getYearColorForUpdate(year) {
     const yearColors = {
-        2019: colorPalette.acento2,
-        2020: colorPalette.azulOscuro,
-        2021: colorPalette.rojoVino,
-        2022: colorPalette.verdeOscuro
+        2019: colorPalette.categorical[0],
+        2020: colorPalette.categorical[1],
+        2021: colorPalette.categorical[2],
+        2022: colorPalette.categorical[3]
     };
-    return yearColors[year] || colorPalette.acento2;
+    return yearColors[year] || colorPalette.categorical[0];
 }
 
 function pandemicColor(progress, year) {
@@ -216,94 +272,227 @@ function pandemicColor(progress, year) {
 }
 
 // ========================================
-// STEP 2: MULTI-LINE CHART
+// STEP 2: LEARNING POVERTY VISUALIZATION
 // ========================================
-function drawMultiLineChart() {
+
+let learningPovertyData = null;
+let currentStep2Substep = 1;
+
+// Cargar datos de learning poverty
+async function loadLearningPovertyData() {
+    if (!learningPovertyData) {
+        const response = await fetch('data/learning_poverty.json');
+        learningPovertyData = await response.json();
+    }
+    return learningPovertyData;
+}
+
+async function drawLearningPoverty(substep = 1) {
     svg.selectAll('*').remove();
+    currentStep2Substep = substep;
 
+    const data = await loadLearningPovertyData();
+
+    // Transformar datos para D3
     const years = [2015, 2019, 2022];
-    const numLines = 8;
-
-    // Generar datos para 8 líneas
-    const data = Array.from({ length: numLines }, (_, i) => ({
-        id: i,
-        values: years.map((year, idx) => {
-            let value;
-            if (i === 3) { // Línea especial con tendencia positiva
-                value = idx === 0 ? 40 : idx === 1 ? 45 : 75; // Salto dramático 2019-2022
-            } else {
-                value = 30 + Math.random() * 40 + (idx * 5);
-            }
-            return { year, value };
-        })
+    const regions = data.map(d => ({
+        region: d.region,
+        values: years.map(year => ({
+            year: year,
+            value: d[year.toString()]
+        }))
     }));
+
+    // MISMOS MÁRGENES QUE STEP 1
+    const vizMargin = {
+        top: 80,
+        right: 80,
+        bottom: 100,
+        left: 80
+    };
 
     // Escalas
     const xScale = d3.scaleLinear()
         .domain([2015, 2022])
-        .range([margin.left, width - margin.right]);
+        .range([vizMargin.left, width - vizMargin.right]);
 
     const yScale = d3.scaleLinear()
         .domain([0, 100])
-        .range([height - margin.bottom, margin.top]);
+        .range([height - vizMargin.bottom, vizMargin.top]);
 
     // Generador de línea
     const line = d3.line()
         .x(d => xScale(d.year))
         .y(d => yScale(d.value));
 
-    // Dibujar líneas
-    const colors = colorPalette.coloresCategoricos;
+    // Título
+    svg.append('text')
+        .attr('x', width / 2)
+        .attr('y', 30)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', '20px')
+        .attr('font-weight', '600')
+        .attr('fill', colorPalette.story.textMain)
+        .text('Pobreza del Aprendizaje en el Mundo');
 
-    data.forEach((lineData, i) => {
-        svg.append('path')
-            .datum(lineData.values)
-            .attr('fill', 'none')
-            .attr('stroke', colors[i % colors.length])
-            .attr('stroke-width', i === 3 ? 3 : 2)
-            .attr('opacity', i === 3 ? 1 : 0.6)
-            .attr('d', line);
-
-        // Segmento rojo para línea especial (2019-2022)
-        if (i === 3) {
-            const segmentData = lineData.values.slice(1, 3);
-            svg.append('path')
-                .datum(segmentData)
-                .attr('fill', 'none')
-                .attr('stroke', '#dc2626')
-                .attr('stroke-width', 4)
-                .attr('d', line)
-                .attr('stroke-dasharray', function () {
-                    const length = this.getTotalLength();
-                    return `${length} ${length}`;
-                })
-                .attr('stroke-dashoffset', function () {
-                    return this.getTotalLength();
-                })
-                .transition()
-                .duration(2000)
-                .attr('stroke-dashoffset', 0);
-        }
-    });
-
-    // Ejes
-    svg.append('g')
-        .attr('transform', `translate(0,${height - margin.bottom})`)
-        .call(d3.axisBottom(xScale).tickFormat(d3.format('d')));
+    // Ejes con ticks personalizados
+    const xAxis = d3.axisBottom(xScale)
+        .tickValues([2015, 2019, 2022])
+        .tickFormat(d3.format('d'));
 
     svg.append('g')
-        .attr('transform', `translate(${margin.left},0)`)
-        .call(d3.axisLeft(yScale));
+        .attr('transform', `translate(0,${height - vizMargin.bottom})`)
+        .call(xAxis)
+        .style('font-size', '16px');
+
+    svg.append('g')
+        .attr('transform', `translate(${vizMargin.left},0)`)
+        .call(d3.axisLeft(yScale))
+        .style('font-size', '16px');
 
     // Label Y
     svg.append('text')
         .attr('transform', 'rotate(-90)')
         .attr('x', -height / 2)
-        .attr('y', 15)
+        .attr('y', 20)
         .attr('text-anchor', 'middle')
-        .attr('font-size', '12px')
-        .attr('fill', colorPalette.texto)
-        .text('Pobreza del Aprendizaje (%)');
+        .attr('font-size', '18px')
+        .attr('font-weight', '600')
+        .attr('fill', colorPalette.story.textMain)
+        .text('Pobreza del aprendizaje (%)');
+
+    if (substep === 1) {
+        // SUBSTEP 1: 6 regiones (sin LATAM, sin destacar Global)
+        const regionColors = [
+            colorPalette.story.context, // 4. Gris Lavanda (Claro - contraste alto vs Verde)
+            colorPalette.categorical[0],
+            colorPalette.categorical[1],
+            colorPalette.categorical[2],
+            colorPalette.categorical[3],
+            colorPalette.categorical[4],
+            colorPalette.categorical[5]
+        ];
+
+        let colorIndex = 0;
+        const legendItems = [];
+
+        regions.forEach(regionData => {
+            if (regionData.region === 'América Latina y el Caribe') return;
+
+            const color = regionColors[colorIndex % regionColors.length];
+            const strokeWidth = regionData.region === 'Global (Ingreso bajo y medio)' ? 5 : 2.5;
+            console.log(regionData.region, strokeWidth);
+
+            // Línea
+            svg.append('path')
+                .attr('class', 'region-line')
+                .datum(regionData.values)
+                .attr('fill', 'none')
+                .attr('stroke', color)
+                .attr('stroke-width', strokeWidth)
+                .attr('opacity', 0.8)
+                .attr('d', line);
+
+            legendItems.push({
+                label: regionData.region,
+                color: color
+            });
+
+            colorIndex++;
+        });
+
+        // LEYENDA SUBSTEP 1
+        const legendY = height - vizMargin.bottom + 60;
+        const legendItemWidth = 280;
+        const legendRows = 2;
+        const legendCols = 3;
+
+        legendItems.forEach((item, i) => {
+            const row = Math.floor(i / legendCols);
+            const col = i % legendCols;
+            const x = vizMargin.left + (col * legendItemWidth);
+            const y = legendY + (row * 25);
+
+            svg.append('rect')
+                .attr('x', x)
+                .attr('y', y - 10)
+                .attr('width', 14)
+                .attr('height', 3)
+                .attr('fill', item.color);
+
+            svg.append('text')
+                .attr('x', x + 20)
+                .attr('y', y - 3)
+                .attr('font-size', '16px')
+                .attr('fill', colorPalette.texto)
+                .text(item.label);
+        });
+
+    } else if (substep === 2) {
+        // SUBSTEP 2: Comparativo con LATAM
+        // Remover todas las líneas menos Global
+        svg.selectAll('.region-line').remove();
+
+        // 1. Dibujar línea COMPLETA de Global (todos los segmentos)
+        const globalData = regions.find(r => r.region === 'Global (Ingreso bajo y medio)');
+        svg.append('path')
+            .datum(globalData.values)
+            .attr('fill', 'none')
+            .attr('stroke', colorPalette.story.context)
+            .attr('stroke-width', 5)
+            .attr('opacity', 0.7)
+            .attr('d', line);
+
+        // 2. Remover todas las líneas menos global
+        const latamData = regions.find(r => r.region === 'América Latina y el Caribe');
+        const latamPath = svg.append('path')
+            .datum(latamData.values)
+            .attr('fill', 'none')
+            .attr('stroke', '#dc2626')
+            .attr('stroke-width', 3)
+            .attr('opacity', 0.7)
+            .attr('d', line);
+
+        // Animación stroke-dasharray
+        const pathLength = latamPath.node().getTotalLength();
+
+        latamPath
+            .attr('stroke-dasharray', `${pathLength} ${pathLength}`)
+            .attr('stroke-dashoffset', pathLength)
+            .transition()
+            .duration(2000)
+            .ease(d3.easeQuadInOut)
+            .attr('stroke-dashoffset', 0);
+
+        // LEYENDA SUBSTEP 2
+        const legendY = height - vizMargin.bottom + 60;
+        const legendItemWidth = 200;
+        const legendStartX = (width - (legendItemWidth * 2)) / 2;
+
+        const legendItems = [
+            { label: 'Global (Ingreso bajo y medio)', color: colorPalette.primario },
+            { label: 'América Latina y el Caribe', color: '#dc2626' }
+        ];
+
+        legendItems.forEach((item, i) => {
+            const x = legendStartX + (i * legendItemWidth);
+
+            svg.append('rect')
+                .attr('x', x)
+                .attr('y', legendY - 10)
+                .attr('width', 14)
+                .attr('height', 3)
+                .attr('fill', item.color);
+
+            svg.append('text')
+                .attr('x', x + 20)
+                .attr('y', legendY - 3)
+                .attr('font-size', '12px')
+                .attr('font-weight', i === 1 ? '600' : 'normal')
+                .attr('fill', colorPalette.texto)
+                .text(item.label);
+        });
+    }
 }
 
 // ========================================
@@ -653,10 +842,55 @@ function transitionToVisualization(drawFunction) {
                 svg.selectAll('*')
                     .style('opacity', 0)
                     .transition()
-                    .duration(600)
+                    .duration(1000)
                     .style('opacity', 1);
             }
         });
+}
+
+// ========================================
+// NAVBAR DINÁMICA - Helper Functions
+// ========================================
+
+const navbar = document.getElementById('scrolly-navbar');
+const navbarTitle = document.getElementById('navbar-title');
+let currentTitle = '';
+
+// Mostrar la navbar
+function showNavbar() {
+    navbar.classList.add('visible');
+}
+
+// Ocultar la navbar
+function hideNavbar() {
+    navbar.classList.remove('visible');
+}
+
+// Actualizar el título con transición suave
+function updateNavbarTitle(step) {
+    const titles = [
+        "El Mounstro Invisible",
+        "La Pobreza del Aprendizaje",
+        "Retroceso en el Tiempo",
+        "Las Víctimas",
+        "La Sombra Económica",
+        "El Arma para Vencer"
+    ]
+    const newTitle = titles[step - 1];
+
+    if (newTitle === currentTitle) return;
+
+    // Fade out
+    navbarTitle.classList.add('fade-out');
+
+    setTimeout(() => {
+        // Cambiar texto
+        navbarTitle.textContent = newTitle;
+        currentTitle = newTitle;
+
+        // Fade in
+        navbarTitle.classList.remove('fade-out');
+    }, 1000);
 }
 
 // ========================================
@@ -678,8 +912,14 @@ scroller
 
         // Remover clase activa de todos los pasos
         document.querySelectorAll('.step').forEach(s => s.classList.remove('is-active'));
+
         // Agregar clase activa al paso actual
         response.element.classList.add('is-active');
+
+        // Mostrar navbar cuando entramos a cualquier step
+        showNavbar();
+
+        updateNavbarTitle(step);
 
         // Cambiar visualización según el paso
         switch (step) {
@@ -690,7 +930,11 @@ scroller
                 }
                 break;
             case '2':
-                transitionToVisualization(drawMultiLineChart);
+                // Step 2 tiene substeps
+                const substep = parseInt(response.element.dataset.substep) || 1;
+                if (!svg.select('path').node() || substep !== currentStep2Substep) {
+                    transitionToVisualization(() => drawLearningPoverty(substep));
+                }
                 break;
             case '3':
                 transitionToVisualization(drawTimeSeries);

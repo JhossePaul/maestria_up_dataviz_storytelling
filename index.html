@@ -23,6 +23,14 @@
 
         <!-- Contenedor del scrollytelling -->
         <section id="scrolly">
+            <!-- Navbar dinámica (solo visible durante scrollytelling) -->
+            <nav id="scrolly-navbar" class="scrolly-navbar">
+                <div class="navbar-container">
+                    <img src="images/logo.png" alt="Logo" class="navbar-logo">
+                    <h2 id="navbar-title" class="navbar-title"></h2>
+                </div>
+            </nav>
+
             <!-- Gráfico fijo (sticky) -->
             <figure>
                 <div id="vis"></div>
@@ -31,7 +39,6 @@
             <!-- Pasos del scroll -->
             <article>
                 <div class="step" data-step="1" data-substep="1">
-                    <h2>El Mounstro Invisible</h2>
                     <p>
                         23 de Marzo, 2020 El día que las aulas cerraron sus puertas.
                     </p>
@@ -60,11 +67,11 @@
 
 
                 <div class="step" data-step="2" data-substep="1">
-                    <h2>Pobreza de Aprendizaje</h2>
                     <p>
                         El porcentaje de niños de 10 años incapaces de leer un
                         texto simple aumentó drásticamente.
-
+                    </p>
+                    <p>
                         Pobreza del aprendizaje: 57% ➔ 70% del 2019 al 2022 para todo el mundo.
                     </p>
                 </div>
@@ -91,7 +98,6 @@
                 </div>
 
                 <div class="step" data-step="3">
-                    <h2>El Retroceso en el Tiempo</h2>
                     <p>
                         ¿Cómo se ve esto en México? Los datos de PISA 2022
                         confirman nuestros peores temores. En matemáticas, no
@@ -115,7 +121,6 @@
                     </p>
                 </div>
                 <div class="step" data-step="4">
-                    <h2>Las víctimas</h2>
                     <p>
                         Pero los números en una gráfica no sangran. Nuestros
                         niños sí. El sistema expulsó a millones. Pero lo más
@@ -142,7 +147,6 @@
                     </p>
                 </div>
                 <div class="step" data-step="5">
-                    <h2>La Sombra Económica</h2>
                     <p>
                         Si la tragedia humana no es suficiente para
                         movilizarnos, veamos la tragedia económica. Esta falta
@@ -158,7 +162,6 @@
                     </p>
                 </div>
                 <div class="step" data-step="6">
-                    <h2>El Arma para Vencer</h2>
                     <p>
                         El panorama es aterrador, pero no es definitivo. Aún
                         podemos vencer a este monstruo. No necesitamos inventar

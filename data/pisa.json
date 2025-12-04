@@ -1,0 +1,98 @@
+{
+    "pisa_data": {
+        "metadata": {
+            "descripcion": "Evolución histórica de puntajes PISA (2003-2022)",
+            "fuente_mexico": "OCDE, PISA 2022 Database, Tablas I.B1.5.4, I.B1.5.5 y I.B1.5.6",
+            "fuente_global": "Promedio OCDE para tendencias a largo plazo (OECD Average-29/26 según disponibilidad de datos históricos consistentes en el reporte 2022)",
+            "notas": "Los puntajes de Ciencias 2003 no están disponibles porque la prueba no estaba estandarizada como competencia principal en ese ciclo."
+        },
+        "mexico_evolucion": [
+            {
+                "anio": 2003,
+                "matematicas": 385,
+                "lectura": 400,
+                "ciencias": null
+            },
+            {
+                "anio": 2006,
+                "matematicas": 406,
+                "lectura": 410,
+                "ciencias": 410
+            },
+            {
+                "anio": 2009,
+                "matematicas": 419,
+                "lectura": 425,
+                "ciencias": 416
+            },
+            {
+                "anio": 2012,
+                "matematicas": 413,
+                "lectura": 424,
+                "ciencias": 415
+            },
+            {
+                "anio": 2015,
+                "matematicas": 408,
+                "lectura": 423,
+                "ciencias": 416
+            },
+            {
+                "anio": 2018,
+                "matematicas": 409,
+                "lectura": 420,
+                "ciencias": 419
+            },
+            {
+                "anio": 2022,
+                "matematicas": 395,
+                "lectura": 415,
+                "ciencias": 410
+            }
+        ],
+        "global_oecd_evolucion": [
+            {
+                "anio": 2003,
+                "matematicas": 499,
+                "lectura": 491,
+                "ciencias": null
+            },
+            {
+                "anio": 2006,
+                "matematicas": 497,
+                "lectura": 489,
+                "ciencias": 495
+            },
+            {
+                "anio": 2009,
+                "matematicas": 499,
+                "lectura": 491,
+                "ciencias": 498
+            },
+            {
+                "anio": 2012,
+                "matematicas": 496,
+                "lectura": 492,
+                "ciencias": 498
+            },
+            {
+                "anio": 2015,
+                "matematicas": 491,
+                "lectura": 490,
+                "ciencias": 491
+            },
+            {
+                "anio": 2018,
+                "matematicas": 489,
+                "lectura": 487,
+                "ciencias": 489
+            },
+            {
+                "anio": 2022,
+                "matematicas": 472,
+                "lectura": 476,
+                "ciencias": 485
+            }
+        ]
+    }
+}

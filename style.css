@@ -322,3 +322,15 @@ body {
         min-height: 50vh;
     }
 }
+
+
+/* ========================================
+   Step 2
+   ======================================== */
+.child-red {
+    filter: invert(14%) sepia(22%) saturate(7424%) hue-rotate(322deg) brightness(102%) contrast(101%);
+}
+
+.child-green {
+    filter: invert(24%) sepia(9%) saturate(2893%) hue-rotate(115deg) brightness(95%) contrast(83%);
+}

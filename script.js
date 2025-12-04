@@ -288,9 +288,6 @@ async function loadLearningPovertyData() {
 }
 
 async function drawLearningPoverty(substep = 1) {
-    svg.selectAll('*').remove();
-    currentStep2Substep = substep;
-
     const data = await loadLearningPovertyData();
 
     // Transformar datos para D3
@@ -303,74 +300,80 @@ async function drawLearningPoverty(substep = 1) {
         }))
     }));
 
-    // MISMOS MÁRGENES QUE STEP 1
+    // MÁRGENES: Izquierdo más grande para título Y, Derecho grande para leyenda
     const vizMargin = {
         top: 80,
-        right: 80,
-        bottom: 100,
-        left: 80
+        right: 80,  // Espacio para leyenda a la derecha
+        bottom: 80,
+        left: 80, // Espacio para título del eje Y
+        titleSpace: 50,
+        legendSpace: 300
     };
 
-    // Escalas
-    const xScale = d3.scaleLinear()
-        .domain([2015, 2022])
-        .range([vizMargin.left, width - vizMargin.right]);
-
-    const yScale = d3.scaleLinear()
-        .domain([0, 100])
-        .range([height - vizMargin.bottom, vizMargin.top]);
-
-    // Generador de línea
-    const line = d3.line()
-        .x(d => xScale(d.year))
-        .y(d => yScale(d.value));
-
-    // Título
-    svg.append('text')
-        .attr('x', width / 2)
-        .attr('y', 30)
-        .attr('text-anchor', 'middle')
-        .attr('font-size', '20px')
-        .attr('font-weight', '600')
-        .attr('fill', colorPalette.story.textMain)
-        .text('Pobreza del Aprendizaje en el Mundo');
-
-    // Ejes con ticks personalizados
-    const xAxis = d3.axisBottom(xScale)
-        .tickValues([2015, 2019, 2022])
-        .tickFormat(d3.format('d'));
-
-    svg.append('g')
-        .attr('transform', `translate(0,${height - vizMargin.bottom})`)
-        .call(xAxis)
-        .style('font-size', '16px');
-
-    svg.append('g')
-        .attr('transform', `translate(${vizMargin.left},0)`)
-        .call(d3.axisLeft(yScale))
-        .style('font-size', '16px');
-
-    // Label Y
-    svg.append('text')
-        .attr('transform', 'rotate(-90)')
-        .attr('x', -height / 2)
-        .attr('y', 20)
-        .attr('text-anchor', 'middle')
-        .attr('font-size', '18px')
-        .attr('font-weight', '600')
-        .attr('fill', colorPalette.story.textMain)
-        .text('Pobreza del aprendizaje (%)');
-
     if (substep === 1) {
-        // SUBSTEP 1: 6 regiones (sin LATAM, sin destacar Global)
+        // SUBSTEP 1: Construir todo desde cero
+        svg.selectAll('*').remove();
+        currentStep2Substep = substep;
+
+        // Escalas
+        const xScale = d3.scaleLinear()
+            .domain([2015, 2022])
+            .range([vizMargin.left + vizMargin.titleSpace, width - vizMargin.right - vizMargin.legendSpace]);
+
+        const yScale = d3.scaleLinear()
+            .domain([0, 100])
+            .range([height - vizMargin.bottom, vizMargin.top]);
+
+        // Generador de línea
+        const line = d3.line()
+            .x(d => xScale(d.year))
+            .y(d => yScale(d.value));
+
+        // Título
+        svg.append('text')
+            .attr('x', width / 2)
+            .attr('y', vizMargin.top / 2)
+            .attr('text-anchor', 'middle')
+            .attr('alignment-baseline', 'hanging')
+            .attr('font-size', '20px')
+            .attr('font-weight', '600')
+            .attr('fill', colorPalette.story.textMain)
+            .text('Pobreza del Aprendizaje en el Mundo');
+
+        // Ejes
+        const xAxis = d3.axisBottom(xScale)
+            .tickValues([2015, 2019, 2022])
+            .tickFormat(d3.format('d'));
+
+        svg.append('g')
+            .attr('transform', `translate(0,${height - vizMargin.bottom})`)
+            .call(xAxis)
+            .style('font-size', '16px');
+
+        svg.append('g')
+            .attr('transform', `translate(${vizMargin.left + vizMargin.titleSpace},0)`)
+            .call(d3.axisLeft(yScale))
+            .style('font-size', '16px');
+
+        // Título del Eje Y 
+        svg.append('text')
+            .attr('transform', 'rotate(-90)')
+            .attr('x', -height / 2)
+            .attr('y', vizMargin.top)
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '18px')
+            .attr('font-weight', '600')
+            .attr('fill', colorPalette.story.textMain)
+            .text('Pobreza del aprendizaje (%)');
+
+        // 6 regiones (sin LATAM)
         const regionColors = [
-            colorPalette.story.context, // 4. Gris Lavanda (Claro - contraste alto vs Verde)
+            colorPalette.story.context,
             colorPalette.categorical[0],
             colorPalette.categorical[1],
             colorPalette.categorical[2],
             colorPalette.categorical[3],
-            colorPalette.categorical[4],
-            colorPalette.categorical[5]
+            colorPalette.categorical[4]
         ];
 
         let colorIndex = 0;
@@ -381,11 +384,11 @@ async function drawLearningPoverty(substep = 1) {
 
             const color = regionColors[colorIndex % regionColors.length];
             const strokeWidth = regionData.region === 'Global (Ingreso bajo y medio)' ? 5 : 2.5;
-            console.log(regionData.region, strokeWidth);
 
-            // Línea
+            // Línea con data-attribute para identificación
             svg.append('path')
                 .attr('class', 'region-line')
+                .attr('data-region', regionData.region)
                 .datum(regionData.values)
                 .attr('fill', 'none')
                 .attr('stroke', color)
@@ -401,98 +404,188 @@ async function drawLearningPoverty(substep = 1) {
             colorIndex++;
         });
 
-        // LEYENDA SUBSTEP 1
-        const legendY = height - vizMargin.bottom + 60;
-        const legendItemWidth = 280;
-        const legendRows = 2;
-        const legendCols = 3;
+        svg.append('line')
+            .attr("y1", yScale(0))
+            .attr("y2", yScale(100))
+            .attr("x1", xScale(2019))
+            .attr("x2", xScale(2019))
+            .attr("stroke", colorPalette.story.crisis)
+            .attr("stroke-width", 2)
+            .attr("stroke-dasharray", "5, 5")
+            .attr("opacity", 0.8);
+
+        // LEYENDA A LA DERECHA
+        const legendX = width - vizMargin.right - vizMargin.legendSpace + 20;
+        const legendY = vizMargin.top + 20;
+        const lineHeight = 35;
 
         legendItems.forEach((item, i) => {
-            const row = Math.floor(i / legendCols);
-            const col = i % legendCols;
-            const x = vizMargin.left + (col * legendItemWidth);
-            const y = legendY + (row * 25);
+            const y = legendY + (i * lineHeight);
 
             svg.append('rect')
-                .attr('x', x)
-                .attr('y', y - 10)
-                .attr('width', 14)
+                .attr('class', 'legend-item')
+                .attr('x', legendX)
+                .attr('y', y - 8)
+                .attr('width', 20)
                 .attr('height', 3)
                 .attr('fill', item.color);
 
             svg.append('text')
-                .attr('x', x + 20)
-                .attr('y', y - 3)
+                .attr('class', 'legend-item')
+                .attr('x', legendX + 25)
+                .attr('y', y)
                 .attr('font-size', '16px')
-                .attr('fill', colorPalette.texto)
+                .attr('fill', colorPalette.story.textMain)
                 .text(item.label);
+            // .call(wrap, vizMargin.right - 50);
         });
 
     } else if (substep === 2) {
-        // SUBSTEP 2: Comparativo con LATAM
-        // Remover todas las líneas menos Global
-        svg.selectAll('.region-line').remove();
+        // SUBSTEP 2: Transición sin reconstruir todo
+        currentStep2Substep = substep;
 
-        // 1. Dibujar línea COMPLETA de Global (todos los segmentos)
-        const globalData = regions.find(r => r.region === 'Global (Ingreso bajo y medio)');
-        svg.append('path')
-            .datum(globalData.values)
-            .attr('fill', 'none')
-            .attr('stroke', colorPalette.story.context)
-            .attr('stroke-width', 5)
-            .attr('opacity', 0.7)
-            .attr('d', line);
+        // Obtener las mismas escalas
+        const xScale = d3.scaleLinear()
+            .domain([2015, 2022])
+            .range([vizMargin.left + vizMargin.titleSpace, width - vizMargin.right - vizMargin.legendSpace]);
 
-        // 2. Remover todas las líneas menos global
-        const latamData = regions.find(r => r.region === 'América Latina y el Caribe');
-        const latamPath = svg.append('path')
-            .datum(latamData.values)
-            .attr('fill', 'none')
-            .attr('stroke', '#dc2626')
-            .attr('stroke-width', 3)
-            .attr('opacity', 0.7)
-            .attr('d', line);
+        const yScale = d3.scaleLinear()
+            .domain([0, 100])
+            .range([height - vizMargin.bottom, vizMargin.top]);
 
-        // Animación stroke-dasharray
-        const pathLength = latamPath.node().getTotalLength();
+        const line = d3.line()
+            .x(d => xScale(d.year))
+            .y(d => yScale(d.value));
 
-        latamPath
-            .attr('stroke-dasharray', `${pathLength} ${pathLength}`)
-            .attr('stroke-dashoffset', pathLength)
+        // 1. Remover líneas que NO sean Global
+        svg.selectAll('.region-line')
+            .filter(function () {
+                const region = d3.select(this).attr('data-region');
+                return region !== 'Global (Ingreso bajo y medio)';
+            })
             .transition()
-            .duration(2000)
-            .ease(d3.easeQuadInOut)
-            .attr('stroke-dashoffset', 0);
+            .duration(600)
+            .attr('opacity', 0)
+            .remove();
 
-        // LEYENDA SUBSTEP 2
-        const legendY = height - vizMargin.bottom + 60;
-        const legendItemWidth = 200;
-        const legendStartX = (width - (legendItemWidth * 2)) / 2;
+        // 3. Agregar línea COMPLETA de LATAM (2015-2019-2022) con animación
+        setTimeout(() => {
+            const latamData = regions.find(r => r.region === 'América Latina y el Caribe');
 
-        const legendItems = [
-            { label: 'Global (Ingreso bajo y medio)', color: colorPalette.primario },
-            { label: 'América Latina y el Caribe', color: '#dc2626' }
-        ];
+            const latamPath = svg.append('path')
+                .attr('class', 'region-line')
+                .attr('data-region', 'América Latina y el Caribe')
+                .datum(latamData.values)
+                .attr('fill', 'none')
+                .attr('stroke', colorPalette.story.crisisHighlight)
+                .attr('stroke-width', 4)
+                .attr('d', line);
 
-        legendItems.forEach((item, i) => {
-            const x = legendStartX + (i * legendItemWidth);
+            // Animación de dibujado con stroke-dasharray
+            const pathLength = latamPath.node().getTotalLength();
 
-            svg.append('rect')
-                .attr('x', x)
-                .attr('y', legendY - 10)
-                .attr('width', 14)
-                .attr('height', 3)
-                .attr('fill', item.color);
+            latamPath
+                .attr('stroke-dasharray', `${pathLength} ${pathLength}`)
+                .attr('stroke-dashoffset', pathLength)
+                .transition()
+                .duration(2000)
+                .ease(d3.easeQuadInOut)
+                .attr('stroke-dashoffset', 0);
+        }, 600);
 
-            svg.append('text')
-                .attr('x', x + 20)
-                .attr('y', legendY - 3)
-                .attr('font-size', '12px')
-                .attr('font-weight', i === 1 ? '600' : 'normal')
-                .attr('fill', colorPalette.texto)
-                .text(item.label);
-        });
+        // 4. Actualizar leyenda
+        svg.selectAll('.legend-item')
+            .transition()
+            .duration(600)
+            .attr('opacity', 0)
+            .remove();
+
+        setTimeout(() => {
+            const legendX = width - vizMargin.right - vizMargin.legendSpace + 20;
+            const legendY = vizMargin.top + 20;
+            const lineHeight = 50;
+
+            const newLegendItems = [
+                { label: 'Global (Ingreso bajo y medio)', color: colorPalette.story.context },
+                { label: 'América Latina y el Caribe', color: colorPalette.story.crisisHighlight }
+            ];
+
+            newLegendItems.forEach((item, i) => {
+                const y = legendY + (i * lineHeight);
+
+                svg.append('rect')
+                    .attr('class', 'legend-item')
+                    .attr('x', legendX)
+                    .attr('y', y - 8)
+                    .attr('width', 20)
+                    .attr('height', 3)
+                    .attr('fill', item.color)
+                    .attr('opacity', 0)
+                    .transition()
+                    .duration(500)
+                    .attr('opacity', 1);
+
+                svg.append('text')
+                    .attr('class', 'legend-item')
+                    .attr('x', legendX + 25)
+                    .attr('y', y)
+                    .attr('font-size', '14px')
+                    .attr('font-weight', i === 1 ? '600' : 'normal')
+                    .attr('fill', colorPalette.story.textMain)
+                    .text(item.label)
+                    .attr('opacity', 0)
+                    .transition()
+                    .duration(500)
+                    .attr('opacity', 1);
+            });
+        }, 600);
+    } else if (substep === 3) {
+        svg.selectAll("*").remove();
+
+        const children = d3.range(5).map(d => ({
+            x: width / 5 * d,
+            y: height / 2,
+            class: d === 0 ? 'child-green' : 'child-red'
+        }));
+
+
+        svg.selectAll('image')
+            .data(children)
+            .enter()
+            .append('image')
+            .attr('class', d => d.class)
+            .attr('xlink:href', 'images/child.png')
+            .attr('width', width / 5)
+            .attr('height', height / 5)
+            .attr('x', d => d.x)
+            .attr('y', d => d.y);
     }
+}
+
+// Helper para wrap de texto largo en leyenda
+function wrap(text, width) {
+    text.each(function () {
+        const text = d3.select(this);
+        const words = text.text().split(/\s+/).reverse();
+        let word;
+        let line = [];
+        let lineNumber = 0;
+        const lineHeight = 1.2;
+        const y = text.attr('y');
+        const x = text.attr('x');
+        let tspan = text.text(null).append('tspan').attr('x', x).attr('y', y);
+
+        while (word = words.pop()) {
+            line.push(word);
+            tspan.text(line.join(' '));
+            if (tspan.node().getComputedTextLength() > width) {
+                line.pop();
+                tspan.text(line.join(' '));
+                line = [word];
+                tspan = text.append('tspan').attr('x', x).attr('y', y).attr('dy', ++lineNumber * lineHeight + 'em').text(word);
+            }
+        }
+    });
 }
 
 // ========================================
@@ -541,7 +634,7 @@ function drawTimeSeries() {
     svg.append('path')
         .datum(data)
         .attr('fill', 'none')
-        .attr('stroke', colorPalette.primario)
+        .attr('stroke', colorPalette.story.value)
         .attr('stroke-width', 3)
         .attr('d', line);
 
@@ -932,8 +1025,9 @@ scroller
             case '2':
                 // Step 2 tiene substeps
                 const substep = parseInt(response.element.dataset.substep) || 1;
+
                 if (!svg.select('path').node() || substep !== currentStep2Substep) {
-                    transitionToVisualization(() => drawLearningPoverty(substep));
+                    drawLearningPoverty(substep);
                 }
                 break;
             case '3':

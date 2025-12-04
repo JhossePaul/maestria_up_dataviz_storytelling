@@ -632,6 +632,34 @@ function drawRAPIDPillars() {
 }
 
 // ========================================
+// HELPER: Transiciones suaves entre gráficos
+// ========================================
+function transitionToVisualization(drawFunction) {
+    // Fade out el contenido actual
+    svg.selectAll('*')
+        .transition()
+        .duration(1000)
+        .style('opacity', 0)
+        .on('end', function (d, i, nodes) {
+            // Solo ejecutar una vez (en el último elemento)
+            if (i === nodes.length - 1) {
+                // Limpiar todo
+                svg.selectAll('*').remove();
+
+                // Dibujar nuevo gráfico con opacidad 0
+                drawFunction();
+
+                // Fade in el nuevo contenido
+                svg.selectAll('*')
+                    .style('opacity', 0)
+                    .transition()
+                    .duration(600)
+                    .style('opacity', 1);
+            }
+        });
+}
+
+// ========================================
 // CONFIGURACIÓN SCROLLAMA
 // ========================================
 
@@ -662,19 +690,19 @@ scroller
                 }
                 break;
             case '2':
-                drawMultiLineChart();
+                transitionToVisualization(drawMultiLineChart);
                 break;
             case '3':
-                drawTimeSeries();
+                transitionToVisualization(drawTimeSeries);
                 break;
             case '4':
-                drawSankeyDiagram();
+                transitionToVisualization(drawSankeyDiagram);
                 break;
             case '5':
-                drawComparativeBarChart();
+                transitionToVisualization(drawComparativeBarChart);
                 break;
             case '6':
-                drawRAPIDPillars();
+                transitionToVisualization(drawRAPIDPillars);
                 break;
         }
     })

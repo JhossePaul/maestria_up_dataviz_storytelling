@@ -1,0 +1,44 @@
+[
+    {
+        "region": "Global (Ingreso bajo y medio)",
+        "2015": 53.0,
+        "2019": 57.0,
+        "2022": 70.0
+    },
+    {
+        "region": "América Latina y el Caribe",
+        "2015": 50.8,
+        "2019": 52.0,
+        "2022": 79.0
+    },
+    {
+        "region": "África Subsahariana",
+        "2015": 50.8,
+        "2019": 52.0,
+        "2022": 79.0
+    },
+    {
+        "region": "Asia del Sur",
+        "2015": 58.2,
+        "2019": 60.0,
+        "2022": 78.0
+    },
+    {
+        "region": "Medio Oriente y Norte de África",
+        "2015": 63.4,
+        "2019": 63.0,
+        "2022": 70.0
+    },
+    {
+        "region": "Asia Oriental y el Pacífico",
+        "2015": 21.4,
+        "2019": 35.0,
+        "2022": 45.0
+    },
+    {
+        "region": "Europa y Asia Central",
+        "2015": 9.0,
+        "2019": 13.0,
+        "2022": 14.0
+    }
+]

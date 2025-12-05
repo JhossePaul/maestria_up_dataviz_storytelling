@@ -2114,55 +2114,22 @@ function drawComparativeBarChart(substep = 1) {
 function drawRAPIDPillars() {
     svg.selectAll('*').remove();
 
-    const letters = ['R', 'A', 'P', 'I', 'D'];
-    const labels = ['Reach', 'Assess', 'Prioritize', 'Increase', 'Develop'];
-    const pillarWidth = 80;
-    const pillarHeight = 200;
-    const spacing = 20;
-    const totalWidth = (pillarWidth * 5) + (spacing * 4);
-    const startX = (width - totalWidth) / 2;
-    const startY = height - margin.bottom - pillarHeight - 40;
+    // Renderizar imagen del modelo RAPID
+    // Ajustamos la imagen para que quepa bien en el contenedor manteniendo proporción
+    const imgWidth = width * 0.9; // 90% del ancho disponible
+    const imgHeight = height * 0.9; // 90% del alto disponible
 
-    letters.forEach((letter, i) => {
-        const x = startX + (i * (pillarWidth + spacing));
-
-        // Pilar
-        svg.append('rect')
-            .attr('x', x)
-            .attr('y', startY)
-            .attr('width', pillarWidth)
-            .attr('height', pillarHeight)
-            .attr('fill', colorPalette.acento2)
-            .attr('opacity', 0.3)
-            .transition()
-            .delay(i * 200)
-            .duration(800)
-            .attr('fill', colorPalette.primario)
-            .attr('opacity', 1);
-
-        // Letra
-        svg.append('text')
-            .attr('x', x + pillarWidth / 2)
-            .attr('y', startY + pillarHeight + 30)
-            .attr('text-anchor', 'middle')
-            .attr('font-size', '36px')
-            .attr('font-weight', '600')
-            .attr('fill', colorPalette.acento2)
-            .text(letter)
-            .transition()
-            .delay(i * 200)
-            .duration(800)
-            .attr('fill', colorPalette.primario);
-
-        // Label
-        svg.append('text')
-            .attr('x', x + pillarWidth / 2)
-            .attr('y', startY - 10)
-            .attr('text-anchor', 'middle')
-            .attr('font-size', '11px')
-            .attr('fill', colorPalette.texto)
-            .text(labels[i]);
-    });
+    svg.append('image')
+        .attr('xlink:href', 'images/rapid.jpg')
+        .attr('width', imgWidth)
+        .attr('height', imgHeight)
+        .attr('x', (width - imgWidth) / 2) // Centrado horizontal
+        .attr('y', (height - imgHeight) / 2) // Centrado vertical
+        .attr('preserveAspectRatio', 'xMidYMid meet') // Mantener proporción
+        .attr('opacity', 0)
+        .transition()
+        .duration(1000)
+        .attr('opacity', 1);
 }
 
 // ========================================
@@ -2242,94 +2209,87 @@ function updateNavbarTitle(step) {
 // CONFIGURACIÓN SCROLLAMA
 // ========================================
 
-// Configurar scrollama
-const scroller = scrollama();
+document.addEventListener('DOMContentLoaded', () => {
+    // Configurar scrollama
+    const scroller = scrollama();
 
-scroller
-    .setup({
-        step: '.step',
-        offset: 0.5,
-        debug: false,
-        progress: true
-    })
-    .onStepEnter(response => {
-        const step = response.element.dataset.step;
+    scroller
+        .setup({
+            step: '.step',
+            offset: 0.5,
+            debug: false,
+            progress: true
+        })
+        .onStepEnter(response => {
+            const step = response.element.dataset.step;
 
-        // Remover clase activa de todos los pasos
-        document.querySelectorAll('.step').forEach(s => s.classList.remove('is-active'));
+            // Remover clase activa de todos los pasos
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('is-active'));
 
-        // Agregar clase activa al paso actual
-        response.element.classList.add('is-active');
+            // Agregar clase activa al paso actual
+            response.element.classList.add('is-active');
 
-        // Mostrar navbar cuando entramos a cualquier step
-        showNavbar();
+            // Actualizar título de la navbar
+            updateNavbarTitle(step);
 
-        updateNavbarTitle(step);
-
-        // Cambiar visualización según el paso
-        switch (step) {
-            case '1':
-                // Dibujar el calendario solo la primera vez
-                if (!svg.select('rect.day').node()) {
-                    drawCalendarHeatmap(1);
-                }
-                break;
-            case '2':
-                // Step 2 tiene substeps
-                const substep = parseInt(response.element.dataset.substep) || 1;
-
-                if (!svg.select('path').node() || substep !== currentStep2Substep) {
-                    drawLearningPoverty(substep);
-                }
-                break;
-            case '3':
-                // Step 3 tiene substeps
-                const substep3 = parseInt(response.element.dataset.substep) || 1;
-                if (!svg.select('path').node() || substep3 !== currentStep3Substep) {
-                    drawTimeSeries(substep3);
-                }
-                break;
-            case '4':
-                // Step 4 tiene substeps
-                const substep4 = parseInt(response.element.dataset.substep) || 1;
-                if (!svg.select('.nodes').node() || substep4 !== currentStep4Substep) {
-                    drawSankeyDiagram(substep4);
-                }
-                break;
-            case '5':
-                // Step 5 tiene substeps
-                const substep5 = parseInt(response.element.dataset.substep) || 1;
-                if (substep5 !== currentStep5Substep) {
-                    drawComparativeBarChart(substep5);
-                }
-                break;
-            case '6':
-                transitionToVisualization(drawRAPIDPillars);
-                break;
-        }
-    })
-    .onStepProgress(response => {
-        const step = response.element.dataset.step;
-
-        // Solo actualizar colores si estamos en Step 1
-        if (step === '1') {
-            // response.progress va de 0 a 1 dentro de cada substep
-            // Necesitamos calcular el progreso total dentro del Step 1
-            const substep = parseInt(response.element.dataset.substep);
-            const totalSubsteps = 2;
-
-            // Calcular progreso global (0-1 a través de todos los 4 substeps)
-            const globalProgress = ((substep - 1) + response.progress) / totalSubsteps;
-
-            // Actualizar colores con el progreso global
-            if (svg.select('rect.day').node()) {
-                updateCalendarColors(globalProgress);
+            // Manejar visualizaciones según el paso
+            switch (step) {
+                case '1':
+                    transitionToVisualization(drawCalendarHeatmap);
+                    break;
+                case '2':
+                    // Step 2 es solo texto, mantenemos la visualización anterior o limpiamos
+                    // En este caso, el heatmap se mantiene visible pero podemos ocultarlo si se desea
+                    break;
+                case '3':
+                    // Step 3 tiene substeps
+                    const substep3 = parseInt(response.element.dataset.substep) || 1;
+                    if (!svg.select('.line-chart').node() || substep3 !== currentStep3Substep) {
+                        drawTimeSeries(substep3);
+                    }
+                    break;
+                case '4':
+                    // Step 4 tiene substeps
+                    const substep4 = parseInt(response.element.dataset.substep) || 1;
+                    if (!svg.select('.nodes').node() || substep4 !== currentStep4Substep) {
+                        drawSankeyDiagram(substep4);
+                    }
+                    break;
+                case '5':
+                    // Step 5 tiene substeps
+                    const substep5 = parseInt(response.element.dataset.substep) || 1;
+                    if (substep5 !== currentStep5Substep) {
+                        drawComparativeBarChart(substep5);
+                    }
+                    break;
+                case '6':
+                    transitionToVisualization(drawRAPIDPillars);
+                    break;
             }
-        }
-    });
+        })
+        .onStepProgress(response => {
+            const step = response.element.dataset.step;
 
-// Manejar resize
-window.addEventListener('resize', scroller.resize);
+            // Solo actualizar colores si estamos en Step 1
+            if (step === '1') {
+                // response.progress va de 0 a 1 dentro de cada substep
+                // Necesitamos calcular el progreso total dentro del Step 1
+                const substep = parseInt(response.element.dataset.substep);
+                const totalSubsteps = 2;
 
-// Inicializar con la primera visualización
-drawCalendarHeatmap();
+                // Calcular progreso global (0-1 a través de todos los 4 substeps)
+                const globalProgress = ((substep - 1) + response.progress) / totalSubsteps;
+
+                // Actualizar colores con el progreso global
+                if (svg.select('rect.day').node()) {
+                    updateCalendarColors(globalProgress);
+                }
+            }
+        });
+
+    // Manejar resize
+    window.addEventListener('resize', scroller.resize);
+
+    // Inicializar con la primera visualización
+    drawCalendarHeatmap();
+});

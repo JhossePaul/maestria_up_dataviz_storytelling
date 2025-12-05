@@ -45,7 +45,7 @@ export function drawMincerCurve(containerId) {
 
     // Título (Draw on SVG, outside margin-clipped area)
     svg.append('text')
-        .attr('x', layout.totalWidth / 2)
+        .attr('x', (layout.totalWidth - layout.margin.left - layout.margin.right) / 2)
         .attr('y', 40) // Fixed header position
         .attr('text-anchor', 'middle')
         .attr('font-size', '20px')

@@ -10,7 +10,7 @@ export async function drawCrimeChart(containerId) {
 
     // 2. TITLE
     svg.append('text')
-        .attr('x', (layout.totalWidth - layout.padding.left - layout.padding.right) / 2)
+        .attr('x', (layout.totalWidth - layout.margin.left - layout.margin.right) / 2)
         .attr('y', 40)
         .attr('text-anchor', 'middle')
         .attr('font-size', '20px')

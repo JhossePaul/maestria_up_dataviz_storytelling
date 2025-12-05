@@ -13,7 +13,8 @@ export async function drawChildLaborSankey(containerId) {
     const { svg, g, width, height } = layout.createSVG(true);
 
     svg.append('text')
-        .attr('x', layout.totalWidth / 2).attr('y', 40)
+        .attr('x', (layout.totalWidth - layout.margin.left - layout.margin.right) / 2)
+        .attr('y', 40)
         .attr('text-anchor', 'middle').attr('font-size', '20px').attr('font-weight', '600')
         .attr('fill', colorPalette.story.textMain).text(titleText);
 

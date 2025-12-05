@@ -26,27 +26,21 @@
         },
         {
             "id": 4,
-            "label": "TRABAJO INFANTIL (Consolidado)",
+            "label": "Trabajo Infantil",
             "color": "#8A1538",
             "tooltip": "3,731,867. Convergencia de estudiantes con doble carga y desertores laborales."
         },
         {
             "id": 5,
-            "label": "Solo Ocupación No Permitida",
+            "label": "Ocupación No Permitida",
             "color": "#A64B5D",
             "tooltip": "1,814,031. Actividad económica prohibida (sin quehaceres excesivos)."
         },
         {
             "id": 6,
-            "label": "Solo Quehaceres No Adecuados",
+            "label": "Quehaceres peligrosos",
             "color": "#A64B5D",
             "tooltip": "1,599,896. Trabajo doméstico peligroso o prolongado."
-        },
-        {
-            "id": 7,
-            "label": "Doble Riesgo (Ambos)",
-            "color": "#590D24",
-            "tooltip": "317,940. Realizan ocupación económica prohibida Y quehaceres excesivos."
         },
         {
             "id": 8,
@@ -59,12 +53,6 @@
             "label": "Bajo Edad Mínima",
             "color": "#A64B5D",
             "tooltip": "Sub-tipo de Ocupación: Niños muy pequeños trabajando."
-        },
-        {
-            "id": 10,
-            "label": "Hogar: Condiciones Peligrosas",
-            "color": "#8A1538",
-            "tooltip": "Quehaceres que ponen en riesgo la salud o seguridad."
         }
     ],
     "links": [
@@ -123,13 +111,6 @@
             "color": "rgba(166, 75, 93, 0.5)"
         },
         {
-            "source": 4,
-            "target": 7,
-            "value": 317940,
-            "label": "Ambos Sectores",
-            "color": "rgba(89, 13, 36, 0.9)"
-        },
-        {
             "source": 5,
             "target": 8,
             "value": 1027648,
@@ -142,34 +123,6 @@
             "value": 786383,
             "label": "Edad Mínima (Est.)",
             "color": "rgba(166, 75, 93, 0.5)"
-        },
-        {
-            "source": 7,
-            "target": 8,
-            "value": 180147,
-            "label": "Peligroso (Doble)",
-            "color": "rgba(89, 13, 36, 0.8)"
-        },
-        {
-            "source": 7,
-            "target": 9,
-            "value": 137793,
-            "label": "Edad Mínima (Doble)",
-            "color": "rgba(89, 13, 36, 0.8)"
-        },
-        {
-            "source": 6,
-            "target": 10,
-            "value": 1599896,
-            "label": "Riesgo Doméstico",
-            "color": "rgba(166, 75, 93, 0.5)"
-        },
-        {
-            "source": 7,
-            "target": 10,
-            "value": 317940,
-            "label": "Riesgo Doméstico (Doble)",
-            "color": "rgba(89, 13, 36, 0.8)"
         }
     ]
 }

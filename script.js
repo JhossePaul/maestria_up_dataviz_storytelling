@@ -1140,13 +1140,16 @@ async function drawSankeyDiagram(substep = 1) {
                 const labelX = node.x + nodeWidth + 8;
                 const labelY = node.y + node.height / 2;
 
+                // Texto blanco para nodo 0, color normal para los demás
+                const textColor = node.id === 0 ? '#FFFFFF' : colorPalette.story.textMain;
+
                 nodeG.append('text')
                     .attr('x', labelX)
                     .attr('y', labelY)
-                    .attr('dy', '-0.3em')
+                    .attr('dy', '-0.5em')
                     .attr('font-size', '13px')
                     .attr('font-weight', '600')
-                    .attr('fill', colorPalette.story.textMain)
+                    .attr('fill', textColor)
                     .attr('opacity', 0)
                     .text(node.label)
                     .transition()
@@ -1154,23 +1157,20 @@ async function drawSankeyDiagram(substep = 1) {
                     .duration(300)
                     .attr('opacity', 1);
 
-                // Valor del nodo - formato especial para nodo 10 (Conflictos con la ley)
-                let valueText;
-                if (node.id === 10) {
-                    // Mostrar en miles
-                    valueText = `${(node.value * 1000).toFixed(0)}K`;
-                } else {
-                    // Mostrar en millones
-                    valueText = `${node.value.toFixed(1)}M`;
-                }
+                // Valor del nodo - TODOS en millones
+                const valueInMillions = node.value / 1000000;
+                const valueText = `${valueInMillions.toFixed(1)}M`;
+
+                // Color del valor: blanco para nodo 0, color del nodo para los demás
+                const valueColor = node.id === 0 ? '#FFFFFF' : nodeColor;
 
                 nodeG.append('text')
                     .attr('x', labelX)
-                    .attr('y', labelY + 16)
+                    .attr('y', labelY + 14)
                     .attr('dy', '0em')
                     .attr('font-size', '15px')
                     .attr('font-weight', '700')
-                    .attr('fill', nodeColor)
+                    .attr('fill', valueColor)
                     .attr('opacity', 0)
                     .text(valueText)
                     .transition()
@@ -1185,99 +1185,927 @@ async function drawSankeyDiagram(substep = 1) {
                 }
             });
         });
+    } else if (substep === 2) {
+        // SUBSTEP 2: Stacked area chart de incidencia delictiva
+        currentStep4Substep = substep;
+        svg.selectAll('*').remove();
+
+        // Márgenes amplios para la leyenda
+        const chartMargin = {
+            top: 120,
+            right: 350,  // Muy amplio para nombres largos
+            bottom: 80,
+            left: 80,
+            titleSpace: 80,
+            legendSpace: 0
+        };
+
+        // Título
+        svg.append('text')
+            .attr('x', width / 2)
+            .attr('y', chartMargin.top / 2)
+            .attr('text-anchor', 'middle')
+            .attr('alignment-baseline', 'hanging')
+            .attr('font-size', '20px')
+            .attr('font-weight', '600')
+            .attr('fill', colorPalette.story.textMain)
+            .text('Incidencia Delictiva contra Menores en México');
+
+        // Cargar y procesar datos CSV
+        d3.csv('data/incidencia_delictiva.csv').then(rawData => {
+            // Delitos a excluir
+            const excludedDelitos = [
+                'Extorsión',
+                'Rapto',
+                'Secuestro',
+                'Feminicidio',
+                'Tráfico de menores'
+            ];
+
+            // Parsear y filtrar datos
+            const data = rawData
+                .filter(d => !excludedDelitos.includes(d.delito))
+                .map(d => ({
+                    fecha: new Date(d.fecha),
+                    delito: d.delito,
+                    conteo: +d.conteo
+                }));
+
+            // Obtener lista de delitos únicos (ahora serán 9 en lugar de 14)
+            const delitos = [...new Set(data.map(d => d.delito))].sort();
+            const fechas = [...new Set(data.map(d => d.fecha))].sort((a, b) => a - b);
+
+            // Paleta de colores MUY contrastante y distintiva (9 colores)
+            const categoricalColors = [
+                '#FFD700', // Oro brillante
+                '#FF8C00', // Naranja oscuro
+                '#DC143C', // Carmesí
+                '#8B008B', // Magenta oscuro
+                '#4B0082', // Índigo
+                '#1E90FF', // Azul dodger
+                '#2E8B57', // Verde mar
+                '#8B4513', // Marrón silla
+                '#2F4F4F'  // Gris pizarra oscuro
+            ];
+
+            const colorScale = d3.scaleOrdinal()
+                .domain(delitos)
+                .range(categoricalColors);
+
+            // Escalas
+            const xScale = d3.scaleTime()
+                .domain(d3.extent(fechas))
+                .range([chartMargin.left + chartMargin.titleSpace, width - chartMargin.right]);
+
+            // Preparar datos para stacking
+            const dataByDate = d3.rollup(
+                data,
+                v => Object.fromEntries(v.map(d => [d.delito, d.conteo])),
+                d => d.fecha
+            );
+
+            const stackData = fechas.map(fecha => {
+                const obj = { fecha };
+                delitos.forEach(delito => {
+                    obj[delito] = dataByDate.get(fecha)?.[delito] || 0;
+                });
+                return obj;
+            });
+
+            // Crear stack
+            const stack = d3.stack()
+                .keys(delitos)
+                .order(d3.stackOrderNone)
+                .offset(d3.stackOffsetNone);
+
+            const series = stack(stackData);
+
+            // Escala Y
+            const maxY = d3.max(series[series.length - 1], d => d[1]);
+            const yScale = d3.scaleLinear()
+                .domain([0, maxY * 1.1])
+                .range([height - chartMargin.bottom, chartMargin.top]);
+
+            // Ejes
+            svg.append('g')
+                .attr('transform', `translate(0,${height - chartMargin.bottom})`)
+                .call(d3.axisBottom(xScale).ticks(10))
+                .style('font-size', '14px');
+
+            svg.append('g')
+                .attr('transform', `translate(${chartMargin.left + chartMargin.titleSpace},0)`)
+                .call(d3.axisLeft(yScale))
+                .style('font-size', '14px');
+
+            // Título eje Y
+            svg.append('text')
+                .attr('transform', 'rotate(-90)')
+                .attr('x', -height / 2)
+                .attr('y', chartMargin.left + 15)
+                .attr('text-anchor', 'middle')
+                .attr('font-size', '16px')
+                .attr('font-weight', '600')
+                .attr('fill', colorPalette.story.textMain)
+                .text('Casos Reportados');
+
+            // Generador de áreas
+            const area = d3.area()
+                .x(d => xScale(d.data.fecha))
+                .y0(d => yScale(d[0]))
+                .y1(d => yScale(d[1]))
+                .curve(d3.curveMonotoneX);
+
+            // Leyenda
+            const legendX = width - chartMargin.right + 20;
+            const legendY = chartMargin.top + 20;
+            const legendGroup = svg.append('g').attr('class', 'legend');
+
+            // Dibujar áreas de manera dramática: una por una
+            const areaGroup = svg.append('g').attr('class', 'areas');
+
+            let currentDelitoIndex = 0;
+            const animationDuration = 1000; // 1 segundo por delito (era 2 segundos)
+            const fadeDuration = 400; // Transición más rápida (era 600ms)
+
+            function animateNextDelito() {
+                if (currentDelitoIndex >= delitos.length) {
+                    // Al final, aplicar colores finales
+                    setTimeout(() => {
+                        areaGroup.selectAll('path')
+                            .data(series)
+                            .transition()
+                            .duration(1000)
+                            .attr('fill', (d, i) => colorScale(delitos[i]))
+                            .attr('opacity', 0.7);
+
+                        // Actualizar leyenda final con todos los colores correctos
+                        legendGroup.selectAll('.legend-item').remove();
+                        delitos.forEach((delito, i) => {
+                            const y = legendY + i * 22;
+
+                            legendGroup.append('rect')
+                                .attr('class', 'legend-item')
+                                .attr('x', legendX)
+                                .attr('y', y - 8)
+                                .attr('width', 15)
+                                .attr('height', 15)
+                                .attr('fill', colorScale(delito))
+                                .attr('opacity', 0.8);
+
+                            legendGroup.append('text')
+                                .attr('class', 'legend-item')
+                                .attr('x', legendX + 20)
+                                .attr('y', y)
+                                .attr('font-size', '11px')
+                                .attr('fill', colorPalette.story.textMain)
+                                .text(delito);
+                        });
+                    }, 500);
+                    return;
+                }
+
+                const delito = delitos[currentDelitoIndex];
+                const delitoData = series[currentDelitoIndex];
+                const delitoColor = colorScale(delito);
+
+                // PASO 1: Mostrar en leyenda en ROJO primero
+                legendGroup.selectAll('.legend-item').remove();
+
+                delitos.slice(0, currentDelitoIndex + 1).forEach((d, i) => {
+                    const y = legendY + i * 22;
+                    const isCurrentDelito = i === currentDelitoIndex;
+                    const itemColor = isCurrentDelito ? colorPalette.story.crisis : colorPalette.story.context;
+
+                    legendGroup.append('rect')
+                        .attr('class', 'legend-item')
+                        .attr('x', legendX)
+                        .attr('y', y - 8)
+                        .attr('width', 15)
+                        .attr('height', 15)
+                        .attr('fill', itemColor)
+                        .attr('opacity', isCurrentDelito ? 0.8 : 0.6);
+
+                    legendGroup.append('text')
+                        .attr('class', 'legend-item')
+                        .attr('x', legendX + 20)
+                        .attr('y', y)
+                        .attr('font-size', '11px')
+                        .attr('fill', colorPalette.story.textMain)
+                        .text(d);
+                });
+
+                // PASO 2: Dibujar área en ROJO después de 300ms
+                setTimeout(() => {
+                    const path = areaGroup.append('path')
+                        .datum(delitoData)
+                        .attr('d', area)
+                        .attr('fill', colorPalette.story.crisis)
+                        .attr('opacity', 0);
+
+                    // Animar entrada del área
+                    path
+                        .transition()
+                        .duration(animationDuration)
+                        .attr('opacity', 0.7)
+                        .on('end', () => {
+                            // PASO 3: Cambiar área a GRIS
+                            path.transition()
+                                .duration(fadeDuration)
+                                .attr('fill', colorPalette.story.context)
+                                .attr('opacity', 0.6)
+                                .on('end', () => {
+                                    // PASO 4: Actualizar leyenda - item actual a gris
+                                    legendGroup.selectAll('.legend-item').remove();
+
+                                    delitos.slice(0, currentDelitoIndex + 1).forEach((d, i) => {
+                                        const y = legendY + i * 22;
+
+                                        legendGroup.append('rect')
+                                            .attr('class', 'legend-item')
+                                            .attr('x', legendX)
+                                            .attr('y', y - 8)
+                                            .attr('width', 15)
+                                            .attr('height', 15)
+                                            .attr('fill', colorPalette.story.context)
+                                            .attr('opacity', 0.6);
+
+                                        legendGroup.append('text')
+                                            .attr('class', 'legend-item')
+                                            .attr('x', legendX + 20)
+                                            .attr('y', y)
+                                            .attr('font-size', '11px')
+                                            .attr('fill', colorPalette.story.textMain)
+                                            .text(d);
+                                    });
+
+                                    currentDelitoIndex++;
+                                    setTimeout(animateNextDelito, 200);
+                                });
+                        });
+                }, 300);
+            }
+
+            // Iniciar animación
+            animateNextDelito();
+        });
+    } else if (substep === 3) {
+        // SUBSTEP 3: Sankey diagram de salud mental
+        currentStep4Substep = substep;
+        svg.selectAll('*').remove();
+
+        // Título
+        svg.append('text')
+            .attr('x', width / 2)
+            .attr('y', vizMargin.top / 2)
+            .attr('text-anchor', 'middle')
+            .attr('alignment-baseline', 'hanging')
+            .attr('font-size', '20px')
+            .attr('font-weight', '600')
+            .attr('fill', colorPalette.story.textMain)
+            .text('Conducta Suicida en Adolescentes (11-19 años)');
+
+        // Cargar datos de salud mental
+        d3.json('data/salud_mental.json').then(data => {
+            // Calcular depth de cada nodo
+            const nodeDepths = {};
+            const visited = new Set();
+
+            function calculateDepth(nodeId, depth = 0) {
+                if (visited.has(nodeId)) return;
+                visited.add(nodeId);
+                nodeDepths[nodeId] = depth;
+
+                data.links.forEach(link => {
+                    if (link.source === nodeId) {
+                        calculateDepth(link.target, depth + 1);
+                    }
+                });
+            }
+
+            calculateDepth(0);
+
+            // Los valores ya están en porcentajes, no necesitamos calcular
+            const nodeValues = {};
+            data.nodes.forEach(node => {
+                nodeValues[node.id] = 0;
+            });
+
+            data.links.forEach(link => {
+                if (!nodeValues[link.source]) nodeValues[link.source] = 0;
+                nodeValues[link.source] = Math.max(nodeValues[link.source], link.value);
+            });
+
+            data.nodes.forEach(node => {
+                const outgoingSum = data.links
+                    .filter(l => l.source === node.id)
+                    .reduce((sum, l) => sum + l.value, 0);
+
+                const incomingSum = data.links
+                    .filter(l => l.target === node.id)
+                    .reduce((sum, l) => sum + l.value, 0);
+
+                nodeValues[node.id] = Math.max(outgoingSum, incomingSum);
+
+                // Nodo raíz (Adolescentes) es 100%
+                if (node.id === 0) {
+                    nodeValues[node.id] = 100;
+                }
+            });
+
+            // Escala de colores divergente
+            const maxDepth = Math.max(...Object.values(nodeDepths));
+            const depthColorScale = d3.scaleLinear()
+                .domain([0, maxDepth])
+                .range([colorPalette.story.hope, colorPalette.story.crisis]);
+
+            // Organizar nodos por profundidad
+            const nodesByDepth = {};
+            data.nodes.forEach(node => {
+                const depth = nodeDepths[node.id];
+                if (!nodesByDepth[depth]) nodesByDepth[depth] = [];
+                nodesByDepth[depth].push(node);
+            });
+
+            // Dimensiones del Sankey
+            const sankeyWidth = width - vizMargin.left - vizMargin.right - vizMargin.titleSpace;
+            const sankeyHeight = height - vizMargin.top - vizMargin.bottom;
+            const nodeWidth = 25;
+            const nodePadding = 60;
+
+            // Escala para altura de nodos (valores en porcentaje, max 100)
+            const maxValue = 100;
+            const heightScale = d3.scaleLinear()
+                .domain([0, maxValue])
+                .range([0, sankeyHeight * 0.8]);
+
+            // Calcular posiciones de nodos
+            const depths = Object.keys(nodesByDepth).map(Number).sort((a, b) => a - b);
+            const depthSpacing = sankeyWidth / (depths.length + 1);
+
+            data.nodes.forEach(node => {
+                const depth = nodeDepths[node.id];
+                const nodesAtDepth = nodesByDepth[depth];
+                const index = nodesAtDepth.indexOf(node);
+
+                node.x = vizMargin.left + vizMargin.titleSpace + (depth + 1) * depthSpacing - nodeWidth / 2;
+                node.value = nodeValues[node.id];
+                node.height = heightScale(node.value);
+                node.depth = depth;
+
+                // Distribuir verticalmente
+                const totalHeight = nodesAtDepth.reduce((sum, n) => sum + heightScale(nodeValues[n.id]), 0);
+                const totalPadding = nodePadding * (nodesAtDepth.length - 1);
+                const startY = vizMargin.top + (sankeyHeight - totalHeight - totalPadding) / 2;
+
+                let yOffset = startY;
+                for (let i = 0; i < index; i++) {
+                    yOffset += heightScale(nodeValues[nodesAtDepth[i].id]) + nodePadding;
+                }
+
+                node.y = yOffset;
+            });
+
+            // Calcular posiciones Y de los links dentro de cada nodo
+            const linkPositions = new Map();
+
+            data.nodes.forEach(node => {
+                const outgoingLinks = data.links.filter(l => l.source === node.id);
+                const incomingLinks = data.links.filter(l => l.target === node.id);
+
+                let outgoingY = node.y;
+                outgoingLinks.forEach(link => {
+                    const linkHeight = heightScale(link.value);
+                    linkPositions.set(`${link.source}-${link.target}-source`, {
+                        y: outgoingY + linkHeight / 2,
+                        height: linkHeight
+                    });
+                    outgoingY += linkHeight;
+                });
+
+                let incomingY = node.y;
+                incomingLinks.forEach(link => {
+                    const linkHeight = heightScale(link.value);
+                    linkPositions.set(`${link.source}-${link.target}-target`, {
+                        y: incomingY + linkHeight / 2,
+                        height: linkHeight
+                    });
+                    incomingY += linkHeight;
+                });
+            });
+
+            // Crear generador de links
+            function createLinkPath(link) {
+                const sourceNode = data.nodes.find(n => n.id === link.source);
+                const targetNode = data.nodes.find(n => n.id === link.target);
+
+                const sourcePos = linkPositions.get(`${link.source}-${link.target}-source`);
+                const targetPos = linkPositions.get(`${link.source}-${link.target}-target`);
+
+                const x0 = sourceNode.x + nodeWidth;
+                const x1 = targetNode.x;
+                const y0 = sourcePos.y;
+                const y1 = targetPos.y;
+
+                const curvature = 0.5;
+                const xi = d3.interpolateNumber(x0, x1);
+                const x2 = xi(curvature);
+                const x3 = xi(1 - curvature);
+
+                return `M${x0},${y0} C${x2},${y0} ${x3},${y1} ${x1},${y1}`;
+            }
+
+            // Dibujar links primero
+            const linkGroup = svg.append('g').attr('class', 'links');
+
+            data.links.forEach((link, i) => {
+                const linkHeight = heightScale(link.value);
+                const linkColor = link.color || depthColorScale(nodeDepths[link.source]);
+
+                linkGroup.append('path')
+                    .attr('d', createLinkPath(link))
+                    .attr('stroke', linkColor)
+                    .attr('stroke-width', linkHeight)
+                    .attr('fill', 'none')
+                    .attr('opacity', 0)
+                    .transition()
+                    .delay(1000 + i * 200)
+                    .duration(600)
+                    .attr('opacity', 1);
+            });
+
+            // Dibujar nodos
+            const nodeGroup = svg.append('g').attr('class', 'nodes');
+
+            depths.forEach((depth, depthIndex) => {
+                nodesByDepth[depth].forEach((node, nodeIndex) => {
+                    const nodeColor = node.color || depthColorScale(depth);
+                    const nodeData = data.nodes.find(n => n.id === node.id);
+
+                    // Grupo para nodo (para tooltip)
+                    const nodeG = nodeGroup.append('g')
+                        .attr('class', 'node-group');
+
+                    // Rectángulo del nodo
+                    nodeG.append('rect')
+                        .attr('x', node.x)
+                        .attr('y', node.y)
+                        .attr('width', 0)
+                        .attr('height', node.height)
+                        .attr('fill', nodeColor)
+                        .attr('rx', 3)
+                        .attr('opacity', 0.9)
+                        .transition()
+                        .delay(depthIndex * 500 + nodeIndex * 150)
+                        .duration(500)
+                        .attr('width', nodeWidth);
+
+                    // Etiqueta del nodo
+                    const labelX = node.x + nodeWidth + 8;
+                    const labelY = node.y + node.height / 2;
+
+                    // Texto blanco para nodo 0, color normal para los demás
+                    const textColor = node.id === 0 ? '#FFFFFF' : colorPalette.story.textMain;
+
+                    nodeG.append('text')
+                        .attr('x', labelX)
+                        .attr('y', labelY)
+                        .attr('dy', '-0.5em')
+                        .attr('font-size', '13px')
+                        .attr('font-weight', '600')
+                        .attr('fill', textColor)
+                        .attr('opacity', 0)
+                        .text(node.label)
+                        .transition()
+                        .delay(depthIndex * 500 + nodeIndex * 150 + 250)
+                        .duration(300)
+                        .attr('opacity', 1);
+
+                    // Valor del nodo - en PORCENTAJE
+                    const valueText = `${node.value.toFixed(2)}%`;
+
+                    // Color del valor: blanco para nodo 0, color del nodo para los demás
+                    const valueColor = node.id === 0 ? '#FFFFFF' : nodeColor;
+
+                    nodeG.append('text')
+                        .attr('x', labelX)
+                        .attr('y', labelY + 14)
+                        .attr('dy', '0em')
+                        .attr('font-size', '15px')
+                        .attr('font-weight', '700')
+                        .attr('fill', valueColor)
+                        .attr('opacity', 0)
+                        .text(valueText)
+                        .transition()
+                        .delay(depthIndex * 500 + nodeIndex * 150 + 400)
+                        .duration(300)
+                        .attr('opacity', 1);
+
+                    // Tooltip
+                    if (nodeData.tooltip) {
+                        nodeG.append('title')
+                            .text(nodeData.tooltip);
+                    }
+                });
+            });
+        });
     }
 }
 
 // ========================================
-// STEP 5: COMPARATIVE BAR CHART (2025 vs 2045)
+// STEP 5: ECONOMIC IMPACT
 // ========================================
-function drawComparativeBarChart() {
+let currentStep5Substep = 1;
+
+function drawComparativeBarChart(substep = 1) {
+    currentStep5Substep = substep;
     svg.selectAll('*').remove();
 
-    const gdp2025 = 100;
-    const gdpLost = 100; // Mismo tamaño
-    const gdpMarginal = 50;
+    if (substep === 1) {
+        // SUBSTEP 1: Gráfico de Ciclo de Vida del Ingreso (Curva de Mincer)
 
-    const data = [
-        { year: '2025', value: gdp2025, type: 'current' },
-        { year: '2045', valueLost: gdpLost, valueMarginal: gdpMarginal, type: 'future' }
-    ];
+        const vizMargin = {
+            top: 80,
+            right: 50,
+            bottom: 60,
+            left: 60,
+            titleSpace: 40
+        };
 
-    const xScale = d3.scaleBand()
-        .domain(['2025', '2045'])
-        .range([margin.left + 50, width - margin.right - 50])
-        .padding(0.4);
+        // --- Configuración del Modelo Económico (Traducción de Python) ---
+        const edadInicio = 22;
+        const edadRetiro = 65;
+        const edadFin = 80;
 
-    const yScale = d3.scaleLinear()
-        .domain([0, gdpLost + gdpMarginal + 20])
-        .range([height - margin.bottom, margin.top]);
+        // Generar datos
+        const data = [];
+        for (let edad = edadInicio; edad <= edadFin; edad++) {
+            let salarioBase;
+            const exp = edad - edadInicio;
 
-    // Barra 2025
-    svg.append('rect')
-        .attr('x', xScale('2025'))
-        .attr('y', yScale(gdp2025))
-        .attr('width', xScale.bandwidth())
-        .attr('height', yScale(0) - yScale(gdp2025))
-        .attr('fill', colorPalette.primario);
+            // 1. Fase Activa (Curva de Mincer)
+            if (edad < edadRetiro) {
+                salarioBase = 100 + (3.5 * exp) - (0.06 * Math.pow(exp, 2));
+            }
+            // 2. Fase de Retiro (Pensión)
+            else {
+                const expFinal = (edadRetiro - 1) - edadInicio;
+                const ultimoSalario = 100 + (3.5 * expFinal) - (0.06 * Math.pow(expFinal, 2));
+                salarioBase = ultimoSalario * 0.55; // Tasa de reemplazo 55%
+            }
 
-    svg.append('text')
-        .attr('x', xScale('2025') + xScale.bandwidth() / 2)
-        .attr('y', yScale(gdp2025) - 10)
-        .attr('text-anchor', 'middle')
-        .attr('font-size', '14px')
-        .attr('font-weight', '600')
-        .text('100%');
+            data.push({
+                edad: edad,
+                ingresoBase: salarioBase,
+                ingresoReal: salarioBase * (1 - 0.08) // El "Impuesto Educativo": -8%
+            });
+        }
 
-    // Barra 2045 - PIB perdido (rojo)
-    svg.append('rect')
-        .attr('x', xScale('2045'))
-        .attr('y', yScale(gdpLost))
-        .attr('width', xScale.bandwidth())
-        .attr('height', yScale(0) - yScale(gdpLost))
-        .attr('fill', '#dc2626')
-        .attr('opacity', 0.8);
+        // --- Graficación ---
 
-    svg.append('text')
-        .attr('x', xScale('2045') + xScale.bandwidth() / 2)
-        .attr('y', yScale(gdpLost / 2))
-        .attr('text-anchor', 'middle')
-        .attr('font-size', '12px')
-        .attr('fill', 'white')
-        .text('PIB Perdido');
+        // Título
+        svg.append('text')
+            .attr('x', width / 2)
+            .attr('y', vizMargin.top / 2)
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '20px')
+            .attr('font-weight', '600')
+            .attr('fill', colorPalette.story.textMain)
+            .text('El Ciclo de Vida del Ingreso en México');
 
-    // Barra 2045 - PIB marginal (verde)
-    svg.append('rect')
-        .attr('x', xScale('2045'))
-        .attr('y', yScale(gdpLost + gdpMarginal))
-        .attr('width', xScale.bandwidth())
-        .attr('height', yScale(gdpLost) - yScale(gdpLost + gdpMarginal))
-        .attr('fill', colorPalette.primario);
+        // Escalas
+        const xScale = d3.scaleLinear()
+            .domain([edadInicio, edadFin])
+            .range([vizMargin.left, width - vizMargin.right]);
 
-    svg.append('text')
-        .attr('x', xScale('2045') + xScale.bandwidth() / 2)
-        .attr('y', yScale(gdpLost + gdpMarginal / 2))
-        .attr('text-anchor', 'middle')
-        .attr('font-size', '12px')
-        .attr('fill', 'white')
-        .text('PIB Marginal');
+        const maxY = d3.max(data, d => d.ingresoBase);
+        const yScale = d3.scaleLinear()
+            .domain([0, maxY * 1.1])
+            .range([height - vizMargin.bottom, vizMargin.top]);
 
-    // Ejes
-    svg.append('g')
-        .attr('transform', `translate(0,${height - margin.bottom})`)
-        .call(d3.axisBottom(xScale));
+        // Ejes
+        const xAxis = d3.axisBottom(xScale).tickFormat(d => `${d} años`);
+        const yAxis = d3.axisLeft(yScale);
 
-    svg.append('g')
-        .attr('transform', `translate(${margin.left + 50},0)`)
-        .call(d3.axisLeft(yScale));
+        svg.append('g')
+            .attr('transform', `translate(0,${height - vizMargin.bottom})`)
+            .call(xAxis)
+            .style('font-size', '12px');
 
-    // Label Y
-    svg.append('text')
-        .attr('transform', 'rotate(-90)')
-        .attr('x', -height / 2)
-        .attr('y', margin.left - 10)
-        .attr('text-anchor', 'middle')
-        .attr('font-size', '12px')
-        .text('PIB (% relativo)');
+        svg.append('g')
+            .attr('transform', `translate(${vizMargin.left},0)`)
+            .call(yAxis)
+            .style('font-size', '12px');
+
+        // Etiquetas de ejes
+        svg.append('text')
+            .attr('x', width / 2)
+            .attr('y', height - 15)
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '12px')
+            .attr('fill', colorPalette.story.textSecondary)
+            .text('Edad');
+
+        svg.append('text')
+            .attr('transform', 'rotate(-90)')
+            .attr('x', -height / 2)
+            .attr('y', 20)
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '12px')
+            .attr('fill', colorPalette.story.textSecondary)
+            .text('Nivel de Ingreso (Índice)');
+
+        // Generadores de líneas y área
+        const lineBase = d3.line()
+            .x(d => xScale(d.edad))
+            .y(d => yScale(d.ingresoBase))
+            .curve(d3.curveMonotoneX);
+
+        const lineReal = d3.line()
+            .x(d => xScale(d.edad))
+            .y(d => yScale(d.ingresoReal))
+            .curve(d3.curveMonotoneX);
+
+        const areaLoss = d3.area()
+            .x(d => xScale(d.edad))
+            .y0(d => yScale(d.ingresoBase))
+            .y1(d => yScale(d.ingresoReal))
+            .curve(d3.curveMonotoneX);
+
+        // Grupo principal
+        const chartG = svg.append('g');
+
+        // 1. Sombreado de la pérdida (Área)
+        chartG.append('path')
+            .datum(data)
+            .attr('fill', colorPalette.story.crisis)
+            .attr('fill-opacity', 0.15)
+            .attr('d', areaLoss)
+            .attr('opacity', 0)
+            .transition()
+            .duration(1000)
+            .attr('opacity', 1);
+
+        // 2. Línea Base (Vida sin Rezago) - Verde
+        const pathBase = chartG.append('path')
+            .datum(data)
+            .attr('fill', 'none')
+            .attr('stroke', colorPalette.story.hope)
+            .attr('stroke-width', 2.5)
+            .attr('d', lineBase);
+
+        // Animación línea base
+        const totalLengthBase = pathBase.node().getTotalLength();
+        pathBase
+            .attr('stroke-dasharray', totalLengthBase + ' ' + totalLengthBase)
+            .attr('stroke-dashoffset', totalLengthBase)
+            .transition()
+            .duration(1500)
+            .ease(d3.easeLinear)
+            .attr('stroke-dashoffset', 0);
+
+        // 3. Línea Real (Rezago -8%) - Vino
+        const pathReal = chartG.append('path')
+            .datum(data)
+            .attr('fill', 'none')
+            .attr('stroke', colorPalette.story.crisis)
+            .attr('stroke-width', 2.5)
+            .attr('d', lineReal);
+
+        // Animación línea real (con un pequeño retraso)
+        const totalLengthReal = pathReal.node().getTotalLength();
+        pathReal
+            .attr('stroke-dasharray', totalLengthReal + ' ' + totalLengthReal)
+            .attr('stroke-dashoffset', totalLengthReal)
+            .transition()
+            .delay(500)
+            .duration(1500)
+            .ease(d3.easeLinear)
+            .attr('stroke-dashoffset', 0);
+
+        // 4. Línea de Retiro (Jubilación)
+        const xRetiro = xScale(edadRetiro);
+        chartG.append('line')
+            .attr('x1', xRetiro)
+            .attr('x2', xRetiro)
+            .attr('y1', yScale(0))
+            .attr('y2', yScale(maxY))
+            .attr('stroke', 'gray')
+            .attr('stroke-width', 1)
+            .attr('stroke-dasharray', '4 4')
+            .attr('opacity', 0.5);
+
+        chartG.append('text')
+            .attr('x', xRetiro + 5)
+            .attr('y', yScale(maxY * 0.9))
+            .attr('font-size', '11px')
+            .attr('fill', '#666')
+            .text('Jubilación (65 años)');
+
+        // 5. Anotaciones
+
+        // Pico Salarial (aprox 50 años)
+        const edadPico = 50;
+        const valPico = data.find(d => d.edad === edadPico).ingresoBase;
+
+        const annotationG = svg.append('g').attr('opacity', 0);
+
+        annotationG.append('text')
+            .attr('x', xScale(edadPico) - 10)
+            .attr('y', yScale(valPico) - 20)
+            .attr('text-anchor', 'end')
+            .attr('font-size', '11px')
+            .attr('fill', '#666')
+            .text('Pico Salarial');
+
+        annotationG.append('line')
+            .attr('x1', xScale(edadPico) - 5)
+            .attr('y1', yScale(valPico) - 15)
+            .attr('x2', xScale(edadPico))
+            .attr('y2', yScale(valPico) - 5)
+            .attr('stroke', '#666')
+            .attr('stroke-width', 1)
+            .attr('marker-end', 'url(#arrow)'); // Asumiendo que definimos un marcador o línea simple
+
+        // Menor Pensión
+        const valFinalReal = data[data.length - 1].ingresoReal;
+
+        annotationG.append('text')
+            .attr('x', xScale(75))
+            .attr('y', yScale(valFinalReal) - 40)
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '11px')
+            .attr('font-weight', 'bold')
+            .attr('fill', colorPalette.story.crisis)
+            .text('Menor Pensión');
+
+        annotationG.append('text')
+            .attr('x', xScale(75))
+            .attr('y', yScale(valFinalReal) - 25)
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '11px')
+            .attr('font-weight', 'bold')
+            .attr('fill', colorPalette.story.crisis)
+            .text('(-8% Vitalicio)');
+
+        annotationG.append('line')
+            .attr('x1', xScale(75))
+            .attr('y1', yScale(valFinalReal) - 20)
+            .attr('x2', xScale(75))
+            .attr('y2', yScale(valFinalReal) - 5)
+            .attr('stroke', colorPalette.story.crisis)
+            .attr('stroke-width', 1.5);
+
+        annotationG.transition().delay(2000).duration(500).attr('opacity', 1);
+
+        // Leyenda
+        const legendG = svg.append('g')
+            .attr('transform', `translate(${width - vizMargin.right - 180}, ${vizMargin.top + 20})`);
+
+        // Item 1
+        legendG.append('line')
+            .attr('x1', 0).attr('x2', 20).attr('y1', 0).attr('y2', 0)
+            .attr('stroke', colorPalette.story.hope).attr('stroke-width', 2.5);
+        legendG.append('text')
+            .attr('x', 25).attr('y', 4)
+            .attr('font-size', '11px').attr('fill', colorPalette.story.textMain)
+            .text('Vida sin Rezago Educativo');
+
+        // Item 2
+        legendG.append('line')
+            .attr('x1', 0).attr('x2', 20).attr('y1', 20).attr('y2', 20)
+            .attr('stroke', colorPalette.story.crisis).attr('stroke-width', 2.5);
+        legendG.append('text')
+            .attr('x', 25).attr('y', 24)
+            .attr('font-size', '11px').attr('fill', colorPalette.story.textMain)
+            .text('Vida Real (Rezago -8%)');
+
+        // Item 3 (Área)
+        legendG.append('rect')
+            .attr('x', 0).attr('y', 35).attr('width', 20).attr('height', 10)
+            .attr('fill', colorPalette.story.crisis).attr('opacity', 0.15);
+        legendG.append('text')
+            .attr('x', 25).attr('y', 44)
+            .attr('font-size', '11px').attr('fill', colorPalette.story.textMain)
+            .text('Pérdida de Bienestar');
+    } else if (substep === 2) {
+        // SUBSTEP 2: Gráfico de barras comparativo - Pérdida Económica vs PIB
+
+        const vizMargin = {
+            top: 100,
+            right: 100,
+            bottom: 100,
+            left: 150,
+            titleSpace: 50
+        };
+
+        // Título
+        svg.append('text')
+            .attr('x', width / 2)
+            .attr('y', vizMargin.top / 2)
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '20px')
+            .attr('font-weight', '600')
+            .attr('fill', colorPalette.story.textMain)
+            .text('Pérdida Económica vs PIB de México');
+
+        // Datos en miles de millones USD
+        const data = [
+            {
+                label: 'Pérdida\nEconómica',
+                value: 3426,
+                color: colorPalette.story.crisis,
+                description: '$3,426 mil millones'
+            },
+            {
+                label: 'PIB 2019\n(Referencia)',
+                value: 2519,
+                color: colorPalette.story.hope,
+                description: '$2,519 mil millones'
+            }
+        ];
+
+        // Escalas
+        const xScale = d3.scaleBand()
+            .domain(data.map(d => d.label))
+            .range([vizMargin.left, width - vizMargin.right])
+            .padding(0.3);
+
+        const maxValue = Math.max(...data.map(d => d.value));
+        const yScale = d3.scaleLinear()
+            .domain([0, maxValue * 1.1])
+            .range([height - vizMargin.bottom, vizMargin.top]);
+
+        // Ejes
+        svg.append('g')
+            .attr('transform', `translate(0,${height - vizMargin.bottom})`)
+            .call(d3.axisBottom(xScale))
+            .style('font-size', '14px')
+            .selectAll('text')
+            .style('text-anchor', 'middle');
+
+        svg.append('g')
+            .attr('transform', `translate(${vizMargin.left},0)`)
+            .call(d3.axisLeft(yScale).ticks(5).tickFormat(d => `$${d.toLocaleString()}`))
+            .style('font-size', '14px');
+
+        // Título eje Y
+        svg.append('text')
+            .attr('transform', 'rotate(-90)')
+            .attr('x', -height / 2)
+            .attr('y', vizMargin.left - 90)
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '16px')
+            .attr('font-weight', '600')
+            .attr('fill', colorPalette.story.textMain)
+            .text('Miles de Millones USD (PPP)');
+
+        // Dibujar barras con animación
+        data.forEach((d, i) => {
+            // Barra
+            svg.append('rect')
+                .attr('x', xScale(d.label))
+                .attr('y', height - vizMargin.bottom)
+                .attr('width', xScale.bandwidth())
+                .attr('height', 0)
+                .attr('fill', d.color)
+                .attr('opacity', 0.85)
+                .transition()
+                .delay(i * 400)
+                .duration(800)
+                .attr('y', yScale(d.value))
+                .attr('height', height - vizMargin.bottom - yScale(d.value));
+
+            // Valor en la parte superior
+            svg.append('text')
+                .attr('x', xScale(d.label) + xScale.bandwidth() / 2)
+                .attr('y', yScale(d.value) - 10)
+                .attr('text-anchor', 'middle')
+                .attr('font-size', '18px')
+                .attr('font-weight', '700')
+                .attr('fill', d.color)
+                .attr('opacity', 0)
+                .text(d.description)
+                .transition()
+                .delay(i * 400 + 800)
+                .duration(400)
+                .attr('opacity', 1);
+        });
+
+        // Nota explicativa
+        svg.append('text')
+            .attr('x', width / 2)
+            .attr('y', height - vizMargin.bottom + 60)
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '14px')
+            .attr('font-style', 'italic')
+            .attr('fill', colorPalette.story.textSecondary)
+            .attr('opacity', 0)
+            .text('La pérdida económica representa 136% del PIB de México (2019)')
+            .transition()
+            .delay(1200)
+            .duration(600)
+            .attr('opacity', 0.8);
+    }
 }
 
 // ========================================
@@ -1469,7 +2297,12 @@ scroller
                 }
                 break;
             case '5':
-                transitionToVisualization(drawComparativeBarChart);
+                // Step 5 tiene substeps
+                const substep5 = parseInt(response.element.dataset.substep) || 1;
+                if (substep5 !== currentStep5Substep) {
+                    drawComparativeBarChart(substep5);
+                }
+                break;
             case '6':
                 transitionToVisualization(drawRAPIDPillars);
                 break;

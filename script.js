@@ -173,8 +173,10 @@ function drawCalendarHeatmap(substep = 1) {
     };
 
     // Función para obtener color de fondo por año
-    function getYearColor(year) {
-        return yearColors[year] || colorPalette.categorical[0];
+    function getYearColor(data) {
+        return data.date.getTime() === pandemicStart.getTime() ?
+            colorPalette.story.crisisHighlight :
+            yearColors[data.year] || colorPalette.categorical[0];
     }
 
     // Título
@@ -197,7 +199,7 @@ function drawCalendarHeatmap(substep = 1) {
         .attr('width', cellSize)
         .attr('height', cellSize)
         .attr('rx', 1)
-        .attr('fill', d => getYearColor(d.year))
+        .attr('fill', d => getYearColor(d))
         .attr('opacity', 0.8)
         .attr('stroke', '#ffffff')
         .attr('stroke-width', 0.5);
@@ -243,32 +245,40 @@ function updateCalendarColors(progress) {
         .attr('fill', function (d) {
             if (!d.isPandemic) {
                 // Pre-pandemia mantiene color de año con más opacidad
-                return d3.color(getYearColorForUpdate(d.year)).brighter(0.3);
+                return d3.color(getYearColorForUpdate(d)).brighter(0.3);
             } else {
                 // Post-pandemia interpola hacia negro según progress
-                return pandemicColor(progress, d.year);
+                return pandemicColor(progress, d);
             }
         })
 }
 
 
 // Helper para obtener color de año en update
-function getYearColorForUpdate(year) {
+function getYearColorForUpdate(data) {
     const yearColors = {
         2019: colorPalette.categorical[0],
         2020: colorPalette.categorical[1],
         2021: colorPalette.categorical[2],
         2022: colorPalette.categorical[3]
     };
-    return yearColors[year] || colorPalette.categorical[0];
+    const pandemicStart = new Date('2020-03-23');
+
+    return data.date.getTime() === pandemicStart.getTime() ?
+        colorPalette.story.crisisHighlight :
+        yearColors[data.year] || colorPalette.categorical[0];
 }
 
-function pandemicColor(progress, year) {
-    const initColor = getYearColorForUpdate(year);
+function pandemicColor(progress, data) {
+    const initColor = getYearColorForUpdate(data);
+    const pandemicStart = new Date('2020-03-23');
     const pandemicColorScale = d3.scaleLinear()
         .domain([0, 1])
         .range([initColor, "#1a1a1a"]);
-    return pandemicColorScale(progress);
+
+    return data.date.getTime() === pandemicStart.getTime() ?
+        colorPalette.story.crisisHighlight :
+        pandemicColorScale(progress);
 }
 
 // ========================================
@@ -589,179 +599,593 @@ function wrap(text, width) {
 }
 
 // ========================================
-// STEP 3: TIME SERIES (2003-2022)
+// STEP 3: PISA TIME SERIES (2003-2022)
 // ========================================
-function drawTimeSeries() {
-    svg.selectAll('*').remove();
 
-    // Generar datos con retroceso al final
-    const startYear = 2003;
-    const endYear = 2022;
-    const initialValue = 395;
+let pisaData = null;
+let currentStep3Substep = 1;
 
-    const data = [];
-    for (let year = startYear; year <= endYear; year++) {
-        let value;
-        if (year === startYear) {
-            value = initialValue;
-        } else if (year <= 2018) {
-            value = data[data.length - 1].value + (Math.random() * 10 - 3);
-        } else {
-            // Declive después de 2019
-            value = data[data.length - 1].value - (Math.random() * 8 + 2);
-        }
-        data.push({ year, value });
+// Cargar datos de PISA
+async function loadPISAData() {
+    if (!pisaData) {
+        const response = await fetch('data/pisa.json');
+        const jsonData = await response.json();
+        pisaData = jsonData.pisa_data;
     }
+    return pisaData;
+}
 
-    // Ajustar valor final para que sea igual al inicial
-    data[data.length - 1].value = initialValue + (Math.random() * 10 - 5);
+async function drawTimeSeries(substep = 1) {
+    const data = await loadPISAData();
+
+    // Márgenes iguales a Step 2
+    const vizMargin = {
+        top: 80,
+        right: 80,
+        bottom: 80,
+        left: 80,
+        titleSpace: 50,
+        legendSpace: 300
+    };
 
     // Escalas
     const xScale = d3.scaleLinear()
-        .domain([startYear, endYear])
-        .range([margin.left, width - margin.right]);
+        .domain([2003, 2022])
+        .range([vizMargin.left + vizMargin.titleSpace, width - vizMargin.right - vizMargin.legendSpace]);
 
     const yScale = d3.scaleLinear()
-        .domain([d3.min(data, d => d.value) - 10, d3.max(data, d => d.value) + 10])
-        .range([height - margin.bottom, margin.top]);
+        .domain([350, 520])
+        .range([height - vizMargin.bottom, vizMargin.top]);
 
-    // Línea
-    const line = d3.line()
-        .x(d => xScale(d.year))
-        .y(d => yScale(d.value));
+    // Animar líneas por subject
+    const subjects = ['matematicas', 'lectura', 'ciencias'];
 
-    // Dibujar línea principal
-    svg.append('path')
-        .datum(data)
-        .attr('fill', 'none')
-        .attr('stroke', colorPalette.story.value)
-        .attr('stroke-width', 3)
-        .attr('d', line);
+    if (substep === 1) {
+        // SUBSTEP 1: Construir todo y animar tendencias globales
+        svg.selectAll('*').remove();
+        currentStep3Substep = substep;
 
-    // Segmento de retroceso en rojo (2019-2022)
-    const regressionData = data.filter(d => d.year >= 2019);
-    svg.append('path')
-        .datum(regressionData)
-        .attr('fill', 'none')
-        .attr('stroke', '#dc2626')
-        .attr('stroke-width', 4)
-        .attr('d', line);
+        // Título
+        svg.append('text')
+            .attr('x', width / 2)
+            .attr('y', vizMargin.top / 2)
+            .attr('text-anchor', 'middle')
+            .attr('alignment-baseline', 'hanging')
+            .attr('font-size', '20px')
+            .attr('font-weight', '600')
+            .attr('fill', colorPalette.story.textMain)
+            .text('Evolución del Desempeño en Matemáticas de México');
 
-    // Etiqueta "Retroceso de 20 años"
-    const lastPoint = data[data.length - 1];
-    svg.append('text')
-        .attr('x', xScale(lastPoint.year) - 10)
-        .attr('y', yScale(lastPoint.value) - 15)
-        .attr('text-anchor', 'end')
-        .attr('font-size', '14px')
-        .attr('font-weight', '600')
-        .attr('fill', '#dc2626')
-        .text('Retroceso de 20 años');
+        // Ejes
+        const xAxis = d3.axisBottom(xScale)
+            .tickValues([2003, 2006, 2009, 2012, 2015, 2018, 2022])
+            .tickFormat(d3.format('d'));
 
-    // Ejes
-    svg.append('g')
-        .attr('transform', `translate(0,${height - margin.bottom})`)
-        .call(d3.axisBottom(xScale).tickFormat(d3.format('d')));
+        svg.append('g')
+            .attr('transform', `translate(0,${height - vizMargin.bottom})`)
+            .call(xAxis)
+            .style('font-size', '16px');
 
-    svg.append('g')
-        .attr('transform', `translate(${margin.left},0)`)
-        .call(d3.axisLeft(yScale));
+        svg.append('g')
+            .attr('transform', `translate(${vizMargin.left + vizMargin.titleSpace},0)`)
+            .call(d3.axisLeft(yScale))
+            .style('font-size', '16px');
 
-    // Label Y
-    svg.append('text')
-        .attr('transform', 'rotate(-90)')
-        .attr('x', -height / 2)
-        .attr('y', 15)
-        .attr('text-anchor', 'middle')
-        .attr('font-size', '12px')
-        .text('Puntajes PISA en Matemáticas');
+        // Título del Eje Y
+        svg.append('text')
+            .attr('transform', 'rotate(-90)')
+            .attr('x', -height / 2)
+            .attr('y', vizMargin.left)
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '18px')
+            .attr('font-weight', '600')
+            .attr('fill', colorPalette.story.textMain)
+            .text('Puntaje PISA');
+
+        subjects.forEach((subject, subjectIndex) => {
+            const subjectData = data.mexico_evolucion;
+
+            // Dibujar todos los segmentos excepto el último (con colores apagados)
+            for (let i = 0; i < subjectData.length - 2; i++) {
+                const segment = [subjectData[i], subjectData[i + 1]];
+
+                const line = d3.line()
+                    .x(d => xScale(d.anio))
+                    .y(d => yScale(d[subject]));
+
+                const path = svg.append('path')
+                    .datum(segment)
+                    .attr('fill', 'none')
+                    .attr('stroke', colorPalette.categorical[subjectIndex])
+                    .attr('stroke-width', 2.5)
+                    .attr('opacity', 0.3)
+                    .attr('d', line);
+
+                // Animación stroke-dasharray
+                const pathLength = path.node().getTotalLength();
+                path
+                    .attr('stroke-dasharray', `${pathLength} ${pathLength}`)
+                    .attr('stroke-dashoffset', pathLength)
+                    .transition()
+                    .delay(subjectIndex * 400 + i * 200)
+                    .duration(500)
+                    .ease(d3.easeLinear)
+                    .attr('stroke-dashoffset', 0);
+            }
+        });
+
+    } else if (substep === 2) {
+        // Ultimo segmento de matematicas de México
+        subjects.forEach((subject, subjectIndex) => {
+            const subjectData = data.mexico_evolucion;
+
+            const lastSegment = subjectData.slice(-2);
+
+            const lastLine = d3.line()
+                .x(d => xScale(d.anio))
+                .y(d => yScale(d[subject]));
+
+            const lastPath = svg.append('path')
+                .datum(lastSegment)
+                .attr('fill', 'none')
+                .attr('stroke', colorPalette.story.crisisHighlight)
+                .attr('stroke-width', 3)
+                .attr('opacity', 1)
+                .attr('d', lastLine);
+
+            const lastPathLength = lastPath.node().getTotalLength();
+            lastPath
+                .attr('stroke-dasharray', `${lastPathLength} ${lastPathLength}`)
+                .attr('stroke-dashoffset', lastPathLength)
+                .transition()
+                .delay(subjectIndex * 400 + (subjectData.length - 2) * 200)
+                .duration(500)
+                .ease(d3.easeLinear)
+                .attr('stroke-dashoffset', 0);
+        });
+    } else if (substep === 3) {
+        // SUBSTEP 3: Donut chart - 43% hogares con computadora
+        currentStep3Substep = substep;
+
+        // Remover gráficos anteriores
+        svg.selectAll('*').remove();
+
+        // Datos del donut
+        const donutData = [
+            { label: 'Con computadora', value: 43, color: colorPalette.story.hope },
+            { label: 'Sin computadora', value: 57, color: colorPalette.story.context }
+        ];
+
+        // Dimensiones del donut
+        const donutWidth = Math.min(width - vizMargin.left - vizMargin.right - vizMargin.titleSpace - vizMargin.legendSpace, 500);
+        const donutHeight = Math.min(height - vizMargin.top - vizMargin.bottom, 500);
+        const radius = Math.min(donutWidth, donutHeight) / 2;
+        const innerRadius = radius * 0.6; // Ancho del donut
+
+        // Centrar el donut
+        const centerX = vizMargin.left + vizMargin.titleSpace + (width - vizMargin.left - vizMargin.right - vizMargin.titleSpace - vizMargin.legendSpace) / 2;
+        const centerY = vizMargin.top + (height - vizMargin.top - vizMargin.bottom) / 2;
+
+        // Título
+        svg.append('text')
+            .attr('x', width / 2)
+            .attr('y', vizMargin.top / 2)
+            .attr('text-anchor', 'middle')
+            .attr('alignment-baseline', 'hanging')
+            .attr('font-size', '20px')
+            .attr('font-weight', '600')
+            .attr('fill', colorPalette.story.textMain)
+            .text('Acceso a Computadora en Hogares Mexicanos');
+
+        // Generador de arcos
+        const arc = d3.arc()
+            .innerRadius(innerRadius)
+            .outerRadius(radius);
+
+        const pie = d3.pie()
+            .value(d => d.value)
+            .sort(null);
+
+        // Grupo para el donut
+        const donutGroup = svg.append('g')
+            .attr('transform', `translate(${centerX},${centerY})`);
+
+        // Dibujar arcos
+        const arcs = donutGroup.selectAll('.arc')
+            .data(pie(donutData))
+            .enter()
+            .append('g')
+            .attr('class', 'arc');
+
+        arcs.append('path')
+            .attr('d', arc)
+            .attr('fill', d => d.data.color)
+            .attr('opacity', 0)
+            .transition()
+            .duration(1000)
+            .attr('opacity', 0.9)
+            .attr('stroke', '#ffffff')
+            .attr('stroke-width', 3);
+
+        // Texto central - Porcentaje
+        svg.append('text')
+            .attr('x', centerX)
+            .attr('y', centerY - 20)
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '64px')
+            .attr('font-weight', '700')
+            .attr('fill', colorPalette.story.hope)
+            .attr('opacity', 0)
+            .text('43%')
+            .transition()
+            .delay(500)
+            .duration(800)
+            .attr('opacity', 1);
+
+        // Texto central - Descripción
+        svg.append('text')
+            .attr('x', centerX)
+            .attr('y', centerY + 25)
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '18px')
+            .attr('font-weight', '400')
+            .attr('fill', colorPalette.story.textMain)
+            .attr('opacity', 0)
+            .text('de hogares con')
+            .transition()
+            .delay(800)
+            .duration(600)
+            .attr('opacity', 0.8);
+
+        svg.append('text')
+            .attr('x', centerX)
+            .attr('y', centerY + 50)
+            .attr('text-anchor', 'middle')
+            .attr('font-size', '18px')
+            .attr('font-weight', '600')
+            .attr('fill', colorPalette.story.textMain)
+            .attr('opacity', 0)
+            .text('computadora')
+            .transition()
+            .delay(1000)
+            .duration(600)
+            .attr('opacity', 1);
+
+        // Leyenda
+        const legendX = width - vizMargin.right - vizMargin.legendSpace + 20;
+        const legendY = vizMargin.top + 20;
+
+        donutData.forEach((item, i) => {
+            const y = legendY + (i * 60);
+
+            svg.append('rect')
+                .attr('x', legendX)
+                .attr('y', y - 8)
+                .attr('width', 20)
+                .attr('height', 20)
+                .attr('fill', item.color)
+                .attr('rx', 2)
+                .attr('opacity', 0)
+                .transition()
+                .delay(1200 + i * 200)
+                .duration(400)
+                .attr('opacity', 0.9);
+
+            svg.append('text')
+                .attr('x', legendX + 30)
+                .attr('y', y)
+                .attr('font-size', '16px')
+                .attr('fill', colorPalette.story.textMain)
+                .attr('opacity', 0)
+                .text(item.label)
+                .transition()
+                .delay(1200 + i * 200)
+                .duration(400)
+                .attr('opacity', 1);
+
+            svg.append('text')
+                .attr('x', legendX + 30)
+                .attr('y', y + 20)
+                .attr('font-size', '24px')
+                .attr('font-weight', '700')
+                .attr('fill', item.color)
+                .attr('opacity', 0)
+                .text(`${item.value}%`)
+                .transition()
+                .delay(1200 + i * 200)
+                .duration(400)
+                .attr('opacity', 1);
+        });
+    }
 }
 
 // ========================================
 // STEP 4: SANKEY DIAGRAM (Simplified)
 // ========================================
-function drawSankeyDiagram() {
-    svg.selectAll('*').remove();
+// ========================================
+// STEP 4: SANKEY DIAGRAM - Trabajo Infantil
+// ========================================
 
-    // Datos simplificados
-    const totalStudents = 100;
-    const dropout = 15;
-    const suicide = 1.5;
-    const childLabor = 10;
-    const crime = 5;
-    const remaining = dropout - suicide - childLabor - crime; // -1.5, pero conceptualmente
+let sankeyData = null;
+let currentStep4Substep = 1;
 
-    const nodeWidth = 20;
-    const nodeGap = 80;
-    const startX = 100;
-    const startY = height / 2 - 50;
+// Cargar datos de abandono escolar
+async function loadSankeyData() {
+    if (!sankeyData) {
+        const response = await fetch('data/abandono_escolar.json');
+        sankeyData = await response.json();
+    }
+    return sankeyData;
+}
 
-    // Nodo: 100% estudiantes
-    svg.append('rect')
-        .attr('x', startX)
-        .attr('y', startY)
-        .attr('width', nodeWidth)
-        .attr('height', 100)
-        .attr('fill', colorPalette.primario);
+async function drawSankeyDiagram(substep = 1) {
+    const data = await loadSankeyData();
+    currentStep4Substep = substep;
 
-    svg.append('text')
-        .attr('x', startX - 10)
-        .attr('y', startY + 50)
-        .attr('text-anchor', 'end')
-        .attr('font-size', '12px')
-        .text('100% Estudiantes');
+    // Márgenes
+    const vizMargin = {
+        top: 200,
+        right: 150,
+        bottom: 80,
+        left: 80,
+        titleSpace: 50,
+        legendSpace: 0
+    };
 
-    // Nodo: 15% abandonan
-    svg.append('rect')
-        .attr('x', startX + nodeGap + nodeWidth)
-        .attr('y', startY + 85)
-        .attr('width', nodeWidth)
-        .attr('height', 15)
-        .attr('fill', '#dc2626');
+    if (substep === 1) {
+        svg.selectAll('*').remove();
 
-    svg.append('text')
-        .attr('x', startX + nodeGap + nodeWidth + 30)
-        .attr('y', startY + 95)
-        .attr('font-size', '11px')
-        .text('15% Abandonan');
-
-    // Flujos hacia outcomes
-    const outcomes = [
-        { label: '1.5% Suicidio', value: 1.5, y: startY + 85 },
-        { label: '10% Trabajo Infantil', value: 10, y: startY + 100 },
-        { label: '5% Crimen', value: 5, y: startY + 115 }
-    ];
-
-    outcomes.forEach((outcome, i) => {
-        const outcomeX = startX + (nodeGap + nodeWidth) * 2;
-        const outcomeY = startY + 70 + (i * 20);
-
-        // Nodo outcome
-        svg.append('rect')
-            .attr('x', outcomeX)
-            .attr('y', outcomeY)
-            .attr('width', nodeWidth)
-            .attr('height', outcome.value)
-            .attr('fill', colorPalette.secundario)
-            .attr('opacity', 0.8);
-
-        // Label
+        // Título
         svg.append('text')
-            .attr('x', outcomeX + nodeWidth + 10)
-            .attr('y', outcomeY + outcome.value / 2 + 4)
-            .attr('font-size', '10px')
-            .text(outcome.label);
-    });
+            .attr('x', width / 2)
+            .attr('y', vizMargin.top / 2)
+            .attr('text-anchor', 'middle')
+            .attr('alignment-baseline', 'hanging')
+            .attr('font-size', '20px')
+            .attr('font-weight', '600')
+            .attr('fill', colorPalette.story.textMain)
+            .text('Ocupación infantil en México');
 
-    // Título
-    svg.append('text')
-        .attr('x', width / 2)
-        .attr('y', 30)
-        .attr('text-anchor', 'middle')
-        .attr('font-size', '16px')
-        .attr('font-weight', '600')
-        .attr('fill', colorPalette.primario)
-        .text('Flujo de Estudiantes');
+        // Calcular depth de cada nodo
+        const nodeDepths = {};
+        const visited = new Set();
+
+        function calculateDepth(nodeId, depth = 0) {
+            if (visited.has(nodeId)) return;
+            visited.add(nodeId);
+            nodeDepths[nodeId] = depth;
+
+            data.links.forEach(link => {
+                if (link.source === nodeId) {
+                    calculateDepth(link.target, depth + 1);
+                }
+            });
+        }
+
+        calculateDepth(0);
+
+        // Calcular valor de cada nodo (suma de links salientes o entrantes)
+        const nodeValues = {};
+        data.nodes.forEach(node => {
+            nodeValues[node.id] = 0;
+        });
+
+        // Para cada nodo, sumar los valores de links que SALEN
+        data.links.forEach(link => {
+            if (!nodeValues[link.source]) nodeValues[link.source] = 0;
+            nodeValues[link.source] = Math.max(nodeValues[link.source], link.value);
+        });
+
+        // Para los nodos sin salidas, usar la suma de entradas
+        data.nodes.forEach(node => {
+            const outgoingSum = data.links
+                .filter(l => l.source === node.id)
+                .reduce((sum, l) => sum + l.value, 0);
+
+            const incomingSum = data.links
+                .filter(l => l.target === node.id)
+                .reduce((sum, l) => sum + l.value, 0);
+
+            nodeValues[node.id] = Math.max(outgoingSum, incomingSum);
+        });
+
+        // Escala de colores divergente
+        const maxDepth = Math.max(...Object.values(nodeDepths));
+        const depthColorScale = d3.scaleLinear()
+            .domain([0, maxDepth])
+            .range([colorPalette.story.hope, colorPalette.story.crisis]);
+
+        // Organizar nodos por profundidad
+        const nodesByDepth = {};
+        data.nodes.forEach(node => {
+            const depth = nodeDepths[node.id];
+            if (!nodesByDepth[depth]) nodesByDepth[depth] = [];
+            nodesByDepth[depth].push(node);
+        });
+
+        // Dimensiones del Sankey
+        const sankeyWidth = width - vizMargin.left - vizMargin.right - vizMargin.titleSpace;
+        const sankeyHeight = height - vizMargin.top - vizMargin.bottom;
+        const nodeWidth = 25;
+        const nodePadding = 60;
+
+        // Escala para altura de nodos
+        const maxValue = Math.max(...Object.values(nodeValues));
+        const heightScale = d3.scaleLinear()
+            .domain([0, maxValue])
+            .range([0, sankeyHeight * 0.8]);
+
+        // Calcular posiciones de nodos
+        const depths = Object.keys(nodesByDepth).map(Number).sort((a, b) => a - b);
+        const depthSpacing = sankeyWidth / (depths.length + 1);
+
+        data.nodes.forEach(node => {
+            const depth = nodeDepths[node.id];
+            const nodesAtDepth = nodesByDepth[depth];
+            const index = nodesAtDepth.indexOf(node);
+
+            node.x = vizMargin.left + vizMargin.titleSpace + (depth + 1) * depthSpacing - nodeWidth / 2;
+            node.value = nodeValues[node.id];
+            node.height = heightScale(node.value);
+            node.depth = depth;
+
+            // Distribuir verticalmente
+            const totalHeight = nodesAtDepth.reduce((sum, n) => sum + heightScale(nodeValues[n.id]), 0);
+            const totalPadding = nodePadding * (nodesAtDepth.length - 1);
+            const startY = vizMargin.top + (sankeyHeight - totalHeight - totalPadding) / 2;
+
+            let yOffset = startY;
+            for (let i = 0; i < index; i++) {
+                yOffset += heightScale(nodeValues[nodesAtDepth[i].id]) + nodePadding;
+            }
+
+            node.y = yOffset;
+        });
+
+        // Calcular posiciones Y de los links dentro de cada nodo
+        const linkPositions = new Map();
+
+        data.nodes.forEach(node => {
+            const outgoingLinks = data.links.filter(l => l.source === node.id);
+            const incomingLinks = data.links.filter(l => l.target === node.id);
+
+            let outgoingY = node.y;
+            outgoingLinks.forEach(link => {
+                const linkHeight = heightScale(link.value);
+                linkPositions.set(`${link.source}-${link.target}-source`, {
+                    y: outgoingY + linkHeight / 2,
+                    height: linkHeight
+                });
+                outgoingY += linkHeight;
+            });
+
+            let incomingY = node.y;
+            incomingLinks.forEach(link => {
+                const linkHeight = heightScale(link.value);
+                linkPositions.set(`${link.source}-${link.target}-target`, {
+                    y: incomingY + linkHeight / 2,
+                    height: linkHeight
+                });
+                incomingY += linkHeight;
+            });
+        });
+
+        // Crear generador de links con gradiente
+        function createLinkPath(link) {
+            const sourceNode = data.nodes.find(n => n.id === link.source);
+            const targetNode = data.nodes.find(n => n.id === link.target);
+
+            const sourcePos = linkPositions.get(`${link.source}-${link.target}-source`);
+            const targetPos = linkPositions.get(`${link.source}-${link.target}-target`);
+
+            const x0 = sourceNode.x + nodeWidth;
+            const x1 = targetNode.x;
+            const y0 = sourcePos.y;
+            const y1 = targetPos.y;
+
+            const curvature = 0.5;
+            const xi = d3.interpolateNumber(x0, x1);
+            const x2 = xi(curvature);
+            const x3 = xi(1 - curvature);
+
+            return `M${x0},${y0} C${x2},${y0} ${x3},${y1} ${x1},${y1}`;
+        }
+
+        // Dibujar links primero
+        const linkGroup = svg.append('g').attr('class', 'links');
+
+        data.links.forEach((link, i) => {
+            const linkHeight = heightScale(link.value);
+            const linkColor = link.color || depthColorScale(nodeDepths[link.source]);
+
+            linkGroup.append('path')
+                .attr('d', createLinkPath(link))
+                .attr('stroke', linkColor)
+                .attr('stroke-width', linkHeight)
+                .attr('fill', 'none')
+                .attr('opacity', 0)
+                .transition()
+                .delay(1000 + i * 200)
+                .duration(600)
+                .attr('opacity', 1);
+        });
+
+        // Dibujar nodos
+        const nodeGroup = svg.append('g').attr('class', 'nodes');
+
+        depths.forEach((depth, depthIndex) => {
+            nodesByDepth[depth].forEach((node, nodeIndex) => {
+                const nodeColor = node.color || depthColorScale(depth);
+                const nodeData = data.nodes.find(n => n.id === node.id);
+
+                // Grupo para nodo (para tooltip)
+                const nodeG = nodeGroup.append('g')
+                    .attr('class', 'node-group');
+
+                // Rectángulo del nodo
+                nodeG.append('rect')
+                    .attr('x', node.x)
+                    .attr('y', node.y)
+                    .attr('width', 0)
+                    .attr('height', node.height)
+                    .attr('fill', nodeColor)
+                    .attr('rx', 3)
+                    .attr('opacity', 0.9)
+                    .transition()
+                    .delay(depthIndex * 500 + nodeIndex * 150)
+                    .duration(500)
+                    .attr('width', nodeWidth);
+
+                // Etiqueta del nodo
+                const labelX = node.x + nodeWidth + 8;
+                const labelY = node.y + node.height / 2;
+
+                nodeG.append('text')
+                    .attr('x', labelX)
+                    .attr('y', labelY)
+                    .attr('dy', '-0.3em')
+                    .attr('font-size', '13px')
+                    .attr('font-weight', '600')
+                    .attr('fill', colorPalette.story.textMain)
+                    .attr('opacity', 0)
+                    .text(node.label)
+                    .transition()
+                    .delay(depthIndex * 500 + nodeIndex * 150 + 250)
+                    .duration(300)
+                    .attr('opacity', 1);
+
+                // Valor del nodo - formato especial para nodo 10 (Conflictos con la ley)
+                let valueText;
+                if (node.id === 10) {
+                    // Mostrar en miles
+                    valueText = `${(node.value * 1000).toFixed(0)}K`;
+                } else {
+                    // Mostrar en millones
+                    valueText = `${node.value.toFixed(1)}M`;
+                }
+
+                nodeG.append('text')
+                    .attr('x', labelX)
+                    .attr('y', labelY + 16)
+                    .attr('dy', '0em')
+                    .attr('font-size', '15px')
+                    .attr('font-weight', '700')
+                    .attr('fill', nodeColor)
+                    .attr('opacity', 0)
+                    .text(valueText)
+                    .transition()
+                    .delay(depthIndex * 500 + nodeIndex * 150 + 400)
+                    .duration(300)
+                    .attr('opacity', 1);
+
+                // Tooltip (área invisible para hover)
+                if (nodeData.tooltip) {
+                    nodeG.append('title')
+                        .text(nodeData.tooltip);
+                }
+            });
+        });
+    }
 }
 
 // ========================================
@@ -1031,14 +1455,21 @@ scroller
                 }
                 break;
             case '3':
-                transitionToVisualization(drawTimeSeries);
+                // Step 3 tiene substeps
+                const substep3 = parseInt(response.element.dataset.substep) || 1;
+                if (!svg.select('path').node() || substep3 !== currentStep3Substep) {
+                    drawTimeSeries(substep3);
+                }
                 break;
             case '4':
-                transitionToVisualization(drawSankeyDiagram);
+                // Step 4 tiene substeps
+                const substep4 = parseInt(response.element.dataset.substep) || 1;
+                if (!svg.select('.nodes').node() || substep4 !== currentStep4Substep) {
+                    drawSankeyDiagram(substep4);
+                }
                 break;
             case '5':
                 transitionToVisualization(drawComparativeBarChart);
-                break;
             case '6':
                 transitionToVisualization(drawRAPIDPillars);
                 break;
@@ -1052,7 +1483,7 @@ scroller
             // response.progress va de 0 a 1 dentro de cada substep
             // Necesitamos calcular el progreso total dentro del Step 1
             const substep = parseInt(response.element.dataset.substep);
-            const totalSubsteps = 4;
+            const totalSubsteps = 2;
 
             // Calcular progreso global (0-1 a través de todos los 4 substeps)
             const globalProgress = ((substep - 1) + response.progress) / totalSubsteps;

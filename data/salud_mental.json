@@ -1,0 +1,72 @@
+{
+    "nodes": [
+        {
+            "id": 0,
+            "label": "Adolescentes",
+            "tooltip": "N=6,775 (11-19 años). Muestra clínica analizada durante el confinamiento y post-pandemia.",
+            "color": "#215347"
+        },
+        {
+            "id": 1,
+            "label": "Sin Conducta Suicida",
+            "tooltip": "53.24%. Grupo que no reportó ni ideación ni intentos durante el periodo evaluado.",
+            "color": "#215347"
+        },
+        {
+            "id": 2,
+            "label": "Con Conducta Suicida",
+            "tooltip": "46.76%. Población en riesgo que manifestó algún grado de espectro suicida.",
+            "color": "#8A1538"
+        },
+        {
+            "id": 3,
+            "label": "Ideación Exclusiva",
+            "tooltip": "36.73%. Jóvenes con pensamientos de muerte o planes, pero que no han pasado al acto físico.",
+            "color": "#A64B5D"
+        },
+        {
+            "id": 4,
+            "label": "Riesgo Máximo (Ideación + Intento)",
+            "tooltip": "7.39%. El grupo más crítico: planearon el acto y lo ejecutaron. Requieren intervención psiquiátrica inmediata.",
+            "color": "#590D24"
+        },
+        {
+            "id": 5,
+            "label": "Intento Impulsivo",
+            "tooltip": "2.64%. Intento SIN ideación previa. Altamente peligroso por ser impredecible y repentino.",
+            "color": "#8A1538"
+        }
+    ],
+    "links": [
+        {
+            "source": 0,
+            "target": 1,
+            "value": 53.24,
+            "color": "rgba(33, 83, 71, 0.3)"
+        },
+        {
+            "source": 0,
+            "target": 2,
+            "value": 46.76,
+            "color": "rgba(138, 21, 56, 0.4)"
+        },
+        {
+            "source": 2,
+            "target": 3,
+            "value": 36.73,
+            "color": "rgba(166, 75, 93, 0.5)"
+        },
+        {
+            "source": 2,
+            "target": 4,
+            "value": 7.39,
+            "color": "rgba(89, 13, 36, 0.8)"
+        },
+        {
+            "source": 2,
+            "target": 5,
+            "value": 2.64,
+            "color": "rgba(138, 21, 56, 0.6)"
+        }
+    ]
+}

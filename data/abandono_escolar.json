@@ -1,0 +1,175 @@
+{
+    "nodes": [
+        {
+            "id": 0,
+            "label": "Población Total (5-17 años)",
+            "color": "#215347",
+            "tooltip": "Total: 28,413,429. (Excluye 'No especificado')."
+        },
+        {
+            "id": 1,
+            "label": "Asisten a la Escuela",
+            "color": "#215347",
+            "tooltip": "26,263,354 (92.4%). Factor protector principal."
+        },
+        {
+            "id": 2,
+            "label": "No Asisten a la Escuela",
+            "color": "#8A1538",
+            "tooltip": "2,149,194 (7.6%). Grupo de alta vulnerabilidad."
+        },
+        {
+            "id": 3,
+            "label": "Sin Trabajo Infantil",
+            "color": "#CCCCCC",
+            "tooltip": "24,681,562. Niños que solo estudian o no realizan actividades prohibidas."
+        },
+        {
+            "id": 4,
+            "label": "TRABAJO INFANTIL (Consolidado)",
+            "color": "#8A1538",
+            "tooltip": "3,731,867. Convergencia de estudiantes con doble carga y desertores laborales."
+        },
+        {
+            "id": 5,
+            "label": "Solo Ocupación No Permitida",
+            "color": "#A64B5D",
+            "tooltip": "1,814,031. Actividad económica prohibida (sin quehaceres excesivos)."
+        },
+        {
+            "id": 6,
+            "label": "Solo Quehaceres No Adecuados",
+            "color": "#A64B5D",
+            "tooltip": "1,599,896. Trabajo doméstico peligroso o prolongado."
+        },
+        {
+            "id": 7,
+            "label": "Doble Riesgo (Ambos)",
+            "color": "#590D24",
+            "tooltip": "317,940. Realizan ocupación económica prohibida Y quehaceres excesivos."
+        },
+        {
+            "id": 8,
+            "label": "Trabajo Peligroso",
+            "color": "#8A1538",
+            "tooltip": "Sub-tipo de Ocupación: Exposición a químicos, maquinaria o inseguridad."
+        },
+        {
+            "id": 9,
+            "label": "Bajo Edad Mínima",
+            "color": "#A64B5D",
+            "tooltip": "Sub-tipo de Ocupación: Niños muy pequeños trabajando."
+        },
+        {
+            "id": 10,
+            "label": "Hogar: Condiciones Peligrosas",
+            "color": "#8A1538",
+            "tooltip": "Quehaceres que ponen en riesgo la salud o seguridad."
+        }
+    ],
+    "links": [
+        {
+            "source": 0,
+            "target": 1,
+            "value": 26263354,
+            "label": "Escolarizados"
+        },
+        {
+            "source": 0,
+            "target": 2,
+            "value": 2149194,
+            "label": "No Escolarizados"
+        },
+        {
+            "source": 1,
+            "target": 3,
+            "value": 23651199,
+            "label": "Solo Estudian",
+            "color": "rgba(33, 83, 71, 0.2)"
+        },
+        {
+            "source": 1,
+            "target": 4,
+            "value": 2612155,
+            "label": "Estudian y Trabajan",
+            "color": "rgba(166, 75, 93, 0.4)"
+        },
+        {
+            "source": 2,
+            "target": 3,
+            "value": 1029482,
+            "label": "Inactivos/Otros",
+            "color": "rgba(200, 200, 200, 0.2)"
+        },
+        {
+            "source": 2,
+            "target": 4,
+            "value": 1119712,
+            "label": "Abandono por Trabajo",
+            "color": "rgba(138, 21, 56, 0.8)"
+        },
+        {
+            "source": 4,
+            "target": 5,
+            "value": 1814031,
+            "label": "Sector Económico",
+            "color": "rgba(138, 21, 56, 0.6)"
+        },
+        {
+            "source": 4,
+            "target": 6,
+            "value": 1599896,
+            "label": "Sector Doméstico",
+            "color": "rgba(166, 75, 93, 0.5)"
+        },
+        {
+            "source": 4,
+            "target": 7,
+            "value": 317940,
+            "label": "Ambos Sectores",
+            "color": "rgba(89, 13, 36, 0.9)"
+        },
+        {
+            "source": 5,
+            "target": 8,
+            "value": 1027648,
+            "label": "Peligroso (Est.)",
+            "color": "rgba(138, 21, 56, 0.7)"
+        },
+        {
+            "source": 5,
+            "target": 9,
+            "value": 786383,
+            "label": "Edad Mínima (Est.)",
+            "color": "rgba(166, 75, 93, 0.5)"
+        },
+        {
+            "source": 7,
+            "target": 8,
+            "value": 180147,
+            "label": "Peligroso (Doble)",
+            "color": "rgba(89, 13, 36, 0.8)"
+        },
+        {
+            "source": 7,
+            "target": 9,
+            "value": 137793,
+            "label": "Edad Mínima (Doble)",
+            "color": "rgba(89, 13, 36, 0.8)"
+        },
+        {
+            "source": 6,
+            "target": 10,
+            "value": 1599896,
+            "label": "Riesgo Doméstico",
+            "color": "rgba(166, 75, 93, 0.5)"
+        },
+        {
+            "source": 7,
+            "target": 10,
+            "value": 317940,
+            "label": "Riesgo Doméstico (Doble)",
+            "color": "rgba(89, 13, 36, 0.8)"
+        }
+    ]
+}

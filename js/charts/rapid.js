@@ -7,17 +7,16 @@ export function drawRAPIDPillars(containerId) {
 
     // Clear and create SVG
     // We might not even need an SVG if it's just an image, but consistency:
-    const { svg, g, width, height } = layout.createSVG(true);
-
-    const imgWidth = width * 0.9;
-    const imgHeight = height * 0.9;
+    // We want to draw on the full SVG surface
+    const { svg, width, height } = layout.createSVG(true);
 
     svg.append('image')
         .attr('xlink:href', 'images/rapid.jpg')
-        .attr('width', imgWidth)
-        .attr('height', imgHeight)
-        .attr('x', (layout.totalWidth - imgWidth) / 2)
-        .attr('y', (layout.totalHeight - imgHeight) / 2)
+        .attr('width', width)
+        .attr('height', height)
+        .attr('preserveAspectRatio', 'xMidYMid meet') // Ensures full image is visible, no cropping
         .attr('opacity', 0)
-        .transition().duration(1000).attr('opacity', 1);
+        .transition()
+        .duration(1000)
+        .attr('opacity', 1);
 }

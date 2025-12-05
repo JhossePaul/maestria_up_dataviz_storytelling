@@ -20,6 +20,21 @@ const navbarTitle = document.getElementById('navbar-title');
 const sourceBar = document.getElementById('source-bar');
 const sourceText = document.getElementById('source-text');
 let currentTitle = '';
+let currentLogosStr = '';
+
+const logoMapping = {
+    1: ['imco.png', 'cdhcm.png', 'elsevier.png'],
+    2: ['unesco.png', 'banco_mundial.png', 'unicef.png', 'elsevier.png'],
+    3: ['unesco.png', 'banco_mundial.png', 'unicef.png', 'elsevier.png'],
+    4: ['oecd.png', 'imco.png'],
+    5: ['inegi.jpg'],
+    6: ['inegi.jpg', 'ibero.png', 'ope.png', 'redim.png'],
+    7: ['redim.png', 'reinserta.png', 'cidh.png', 'inegi.jpg'],
+    8: ['inp.png', 'unicef.png', 'inegi.jpg'],
+    9: ['imco.png', 'oecd.png', 'banco_mundial.png', 'stanford.png', 'bid.png'],
+    10: ['imco.png', 'oecd.png', 'unicef.png'],
+    11: ['banco_mundial.png', 'unicef.png', 'unesco.png', 'usaid.png', 'fdco.png']
+};
 
 function showNavbar() {
     navbar.classList.add('visible');
@@ -33,38 +48,20 @@ function hideNavbar() {
 
 function updateNavbarTitle(step) {
     let newTitle = "";
-    let newSource = "";
     const s = parseInt(step);
 
-    if (s === 1) {
-        newTitle = "El Mounstro Invisible";
-        newSource = "Fuente: Cierres de escuelas (UNESCO, 2021) / Días efectivos (Monitor Educativo)";
-    } else if (s >= 2 && s <= 3) {
-        newTitle = "La Pobreza del Aprendizaje";
-        newSource = "Fuente: Banco Mundial (2022) / Estado de la educación global";
-    } else if (s === 4) {
-        newTitle = "Retroceso en el Tiempo";
-        newSource = "Fuente: PISA 2022 (OCDE) / Resultados México";
-    } else if (s === 5) {
-        newTitle = "La Brecha Digital";
-        newSource = "Fuente: ENDUTIH 2022 (INEGI) / Acceso a TIC en hogares";
-    } else if (s === 6) {
-        newTitle = "Las Víctimas";
-        newSource = "Fuente: OIT / Trabajo Infantil en tiempos de COVID";
-    } else if (s === 7) {
-        newTitle = "Las Víctimas";
-        newSource = "Fuente: Redim / Secretariado Ejecutivo del SNSP (2023)";
-    } else if (s === 8) {
-        newTitle = "Las Víctimas";
-        newSource = "Fuente: ENSANUT / Secretaría de Salud - Salud Mental Adolescente";
-    } else if (s >= 9 && s <= 10) {
-        newTitle = "La Sombra Económica";
-        newSource = "Fuente: Banco Mundial / IMCO - Costo Económico del Rezago";
-    } else if (s === 11) {
-        newTitle = "El Arma para Vencer";
-        newSource = "Fuente: World Bank - Recuperación y Aceleración de Aprendizajes (RAPID)";
-    }
+    // Title Logic
+    if (s === 1) newTitle = "El Mounstro Invisible";
+    else if (s >= 2 && s <= 3) newTitle = "La Pobreza del Aprendizaje";
+    else if (s === 4) newTitle = "Retroceso en el Tiempo";
+    else if (s === 5) newTitle = "La Brecha Digital";
+    else if (s === 6) newTitle = "Las Víctimas";
+    else if (s === 7) newTitle = "Las Víctimas";
+    else if (s === 8) newTitle = "Las Víctimas";
+    else if (s >= 9 && s <= 10) newTitle = "La Sombra Económica";
+    else if (s === 11) newTitle = "El Arma para Vencer";
 
+    // Text Update
     if (newTitle !== currentTitle) {
         navbarTitle.classList.add('fade-out');
         setTimeout(() => {
@@ -74,10 +71,22 @@ function updateNavbarTitle(step) {
         }, 500);
     }
 
-    if (sourceText.textContent !== newSource) {
+    // Logo Update
+    const newLogos = logoMapping[s] || [];
+    const newLogosStr = JSON.stringify(newLogos);
+
+    if (newLogosStr !== currentLogosStr) {
         sourceText.style.opacity = 0;
         setTimeout(() => {
-            sourceText.textContent = newSource;
+            sourceText.innerHTML = ''; // Clear text
+            newLogos.forEach(logo => {
+                const img = document.createElement('img');
+                img.src = `images/${logo}`;
+                img.className = 'source-logo';
+                img.alt = logo.split('.')[0];
+                sourceText.appendChild(img);
+            });
+            currentLogosStr = newLogosStr;
             sourceText.style.opacity = 1;
         }, 500);
     }

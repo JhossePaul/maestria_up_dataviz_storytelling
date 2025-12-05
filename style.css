@@ -214,6 +214,63 @@ body {
     font-size: 1.2rem;
 }
 
+/* ========================================
+   SECCIÓN DE REFERENCIAS
+   ======================================== */
+#references {
+    min-height: 50vh;
+    /* Not necessarily full screen, just enough */
+    background-color: var(--color-azul);
+    /* Blue background */
+    color: var(--color-blanco);
+    /* White text */
+    padding: 4rem 2rem 8rem 2rem;
+    /* Extra bottom padding for source bar */
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.references-container {
+    max-width: 800px;
+    width: 100%;
+}
+
+#references h2 {
+    font-size: 2rem;
+    font-weight: 600;
+    margin-bottom: 2rem;
+    text-align: center;
+    border-bottom: 2px solid var(--color-dorado);
+    padding-bottom: 0.5rem;
+    display: inline-block;
+}
+
+#references ul {
+    list-style-type: none;
+    /* Clean look */
+    padding: 0;
+}
+
+#references li {
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+#references li em {
+    font-style: italic;
+    color: var(--color-dorado);
+    /* Highlight titles */
+}
+
+#references li a {
+    font-style: italic;
+    color: var(--color-dorado);
+    /* Highlight titles */
+}
+
 /* Scrollytelling section */
 #scrolly {
     position: relative;
@@ -344,14 +401,20 @@ body {
     bottom: 0;
     left: 0;
     width: 100%;
-    background-color: var(--color-negro);
-    color: var(--color-blanco);
-    padding: 0.5rem 2rem;
+    background-color: #FFFFFF;
+    /* White background */
+    color: var(--color-negro);
+    padding: 0.8rem 2rem;
+    /* Increased padding */
     z-index: 1000;
     opacity: 0;
     transform: translateY(100%);
     transition: all 0.5s ease;
     border-top: 2px solid var(--color-acento);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
 }
 
 .source-bar.visible {
@@ -366,4 +429,17 @@ body {
     font-family: var(--font-family);
     font-weight: 300;
     letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    /* Space between logos */
+}
+
+.source-logo {
+    height: 40px;
+    /* Fixed height for consistency */
+    width: auto;
+    object-fit: contain;
+    transition: all 0.3s ease;
 }

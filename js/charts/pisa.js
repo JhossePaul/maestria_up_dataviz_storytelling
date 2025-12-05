@@ -12,8 +12,18 @@ async function loadPISAData() {
     return pisaData;
 }
 
+let chartState = {
+    animated: false,
+    g: null,
+    scales: null,
+    lineGen: null,
+    data: null
+};
+
 export async function drawTimeSeries(containerId) {
+    chartState.animated = false;
     const data = await loadPISAData();
+    chartState.data = data;
 
     // BOX MODEL
     const layout = new ChartLayout(containerId, {
@@ -21,10 +31,12 @@ export async function drawTimeSeries(containerId) {
     });
 
     const { svg, g, width, height } = layout.createSVG(true);
+    chartState.g = g;
 
     // Scales
     const xScale = d3.scaleLinear().domain([2003, 2022]).range([0, width]);
     const yScale = d3.scaleLinear().domain([350, 520]).range([height, 0]);
+    chartState.scales = { x: xScale, y: yScale };
 
     // Title
     svg.append('text')
@@ -53,6 +65,7 @@ export async function drawTimeSeries(containerId) {
         .curve(d3.curveMonotoneX)
         .x(d => xScale(d.anio))
         .y(d => yScale(d.value));
+    chartState.lineGen = lineGenerator;
 
     // Legend Data
     const legendItems = subjects.map((s, i) => ({ label: s.charAt(0).toUpperCase() + s.slice(1), color: colorPalette.categorical[i] }));
@@ -65,7 +78,7 @@ export async function drawTimeSeries(containerId) {
         g.append('text').attr('x', legendX + 25).attr('y', y).attr('fill', colorPalette.story.textMain).text(item.label);
     });
 
-    // === VISUALIZATION LOGIC ===
+    // === VISUALIZATION LOGIC (Phase 1: Pre-2022) ===
 
     subjects.forEach((subject, subjectIndex) => {
         const subjectData = data.mexico_evolucion[subject];
@@ -73,15 +86,12 @@ export async function drawTimeSeries(containerId) {
 
         // Define Unique IDs for ClipPaths
         const clipId1 = `clip-pisa-${subject}-1`;
-        const clipId2 = `clip-pisa-${subject}-2`;
 
-        // 1. PHASE 1: PRE-2022 TREND (2003-2018)
-        // We use the FULL path geometry but clip it to view only up to 2018.
-        // This ensures the curve at 2018 is calculated with 2022 context (Spline continuity).
+        // Create ClipPath for Phase 1 (Only show up to 2018 initially, or animate complete reveal?)
+        // The original requirement was "Spline continuity".
+        // To show "Evolution up to 2018", we clip at 2018.
 
-        // Create ClipPath for Phase 1
         const x2018 = xScale(2018);
-        const totalW = xScale(2022); // Max width needed
 
         const clipRect1 = g.append('defs').append('clipPath')
             .attr('id', clipId1)
@@ -91,7 +101,7 @@ export async function drawTimeSeries(containerId) {
             .attr('width', 0) // Start hidden
             .attr('height', height);
 
-        const path1 = g.append('path')
+        g.append('path')
             .attr('clip-path', `url(#${clipId1})`)
             .attr('fill', 'none')
             .attr('stroke', colorPalette.categorical[subjectIndex])
@@ -103,34 +113,46 @@ export async function drawTimeSeries(containerId) {
         clipRect1.transition().duration(2000).ease(d3.easeLinear)
             .attr('width', x2018);
 
-        // 2. PHASE 2: THE DROP (2018-2022)
-        // Wait 5 seconds, then draw the drop segment in RED.
-        // We clone the full path again, but clip distinctively to show only 2018+.
+        // Store subject data/colors for Phase 2 if needed, but easier to just loop subjects again in animate
+    });
+}
 
-        const delayMs = 5000;
+export function animatePisaDrop(containerId) {
+    if (chartState.animated) return;
+    chartState.animated = true;
 
-        setTimeout(() => {
-            if (g.select('path').empty()) return;
+    const { g, scales, lineGen, data } = chartState;
+    if (!g || !g.node()) return;
 
-            const clipRect2 = g.append('defs').append('clipPath')
-                .attr('id', clipId2)
-                .append('rect')
-                .attr('x', x2018) // Start at 2018
-                .attr('y', 0)
-                .attr('width', 0) // Start hidden (reveal from left to right)
-                .attr('height', height);
+    const subjects = ['matematicas', 'lectura', 'ciencias'];
+    const xScale = scales.x;
+    const height = scales.y.range()[0]; // range [height, 0], so index 0 is height
+    const x2018 = xScale(2018);
+    const totalW = xScale(2022);
 
-            const path2 = g.append('path')
-                .attr('clip-path', `url(#${clipId2})`)
-                .attr('fill', 'none')
-                .attr('stroke', colorPalette.story.crisisHighlight) // Red for drop
-                .attr('stroke-width', 4)
-                .attr('d', fullPathD); // Same Geometry for perfect overlap/continuity
+    subjects.forEach((subject, subjectIndex) => {
+        const subjectData = data.mexico_evolucion[subject];
+        const fullPathD = lineGen(subjectData);
+        const clipId2 = `clip-pisa-${subject}-2`;
 
-            // Animate Phase 2 Reveal (Width 0 -> x2022 - x2018)
-            clipRect2.transition().duration(1000).ease(d3.easeLinear)
-                .attr('width', totalW - x2018);
+        // PHASE 2: THE DROP (2018-2022) - RED LINE
+        const clipRect2 = g.append('defs').append('clipPath')
+            .attr('id', clipId2)
+            .append('rect')
+            .attr('x', x2018) // Start at 2018
+            .attr('y', 0)
+            .attr('width', 0) // Start hidden
+            .attr('height', height);
 
-        }, delayMs);
+        g.append('path')
+            .attr('clip-path', `url(#${clipId2})`)
+            .attr('fill', 'none')
+            .attr('stroke', colorPalette.story.crisisHighlight) // Red for drop
+            .attr('stroke-width', 4)
+            .attr('d', fullPathD);
+
+        // Animate Phase 2 Reveal
+        clipRect2.transition().duration(1000).ease(d3.easeLinear)
+            .attr('width', totalW - x2018);
     });
 }

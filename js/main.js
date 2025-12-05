@@ -1,9 +1,8 @@
-
 // Imports from Modules
 import { updateCalendarColors, drawCalendarHeatmap } from './charts/calendar.js';
-import { drawLearningPoverty } from './charts/learningPoverty.js';
+import { drawLearningPoverty, animateLearningPoverty } from './charts/learningPoverty.js';
 import { drawLearningPovertyIcons } from './charts/learningPovertyIcons.js';
-import { drawTimeSeries } from './charts/pisa.js';
+import { drawTimeSeries, animatePisaDrop } from './charts/pisa.js';
 import { drawDigitalDivide } from './charts/digitalDivide.js';
 import { drawChildLaborSankey } from './charts/childLaborSankey.js';
 import { drawCrimeChart } from './charts/crimeChart.js';
@@ -157,6 +156,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const step = response.element.dataset.step;
             if (step === '1') {
                 updateCalendarColors(containerId, response.progress);
+            } else if (step === '2' && response.progress >= 0.4) {
+                animateLearningPoverty(containerId, response.progress);
+            } else if (step === '4' && response.progress >= 0.4) {
+                animatePisaDrop(containerId, response.progress);
             }
         })
         .onStepExit(response => {

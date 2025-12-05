@@ -11,8 +11,16 @@ async function loadLearningPovertyData() {
     return learningPovertyData;
 }
 
+let chartState = {
+    animated: false,
+    g: null,
+    scales: null,
+    lineGen: null,
+    regions: null
+};
+
 export async function drawLearningPoverty(containerId) {
-    // === LINE CHART (Step 2) ===
+    chartState.animated = false;
     const data = await loadLearningPovertyData();
 
     // Define layout
@@ -22,15 +30,20 @@ export async function drawLearningPoverty(containerId) {
 
     const { svg, g, width, height } = layout.createSVG(true); // Clear and redraw
 
+    // Save state
+    chartState.g = g;
+
     // SCALES
     const xScale = d3.scaleLinear().domain([2015, 2022]).range([0, width]);
     const yScale = d3.scaleLinear().domain([0, 100]).range([height, 0]);
+    chartState.scales = { x: xScale, y: yScale };
 
     // SPLINE GENERATOR
     const line = d3.line()
         .curve(d3.curveMonotoneX) // Spline de tercer grado
         .x(d => xScale(d.year))
         .y(d => yScale(d.value));
+    chartState.lineGen = line;
 
     // Prepare Data
     const years = [2015, 2019, 2022];
@@ -38,6 +51,7 @@ export async function drawLearningPoverty(containerId) {
         region: d.region,
         values: years.map(year => ({ year, value: d[year.toString()] }))
     }));
+    chartState.regions = regions;
 
     // Draw Axes & Title
     svg.append('text')
@@ -66,7 +80,9 @@ export async function drawLearningPoverty(containerId) {
         .attr('fill', colorPalette.story.textMain)
         .text('Pobreza del aprendizaje (%)');
 
-    // 1. Draw ALL Regions (Except LATAM) with colors
+    // 1. Draw ALL Regions (Except LATAM) Initially
+    // Initial State: All colored categorical (or just context color)
+    // Request implied "Wait 5s -> Shift". So start with colorful/standard.
     const regionColors = [
         colorPalette.story.context,
         colorPalette.categorical[0],
@@ -81,12 +97,7 @@ export async function drawLearningPoverty(containerId) {
     regions.forEach(regionData => {
         if (regionData.region === 'América Latina y el Caribe') return;
 
-        // "Global" starts distinct? Request says "Update Global to Blue" later.
-        // Initially, let's use the categorical palette for everyone.
-
         let color = regionColors[colorIndex % regionColors.length];
-        const isGlobal = regionData.region === 'Global (Ingreso bajo y medio)';
-        const strokeWidth = isGlobal ? 4 : 2.5;
 
         g.append('path')
             .attr('class', 'region-line')
@@ -94,7 +105,7 @@ export async function drawLearningPoverty(containerId) {
             .datum(regionData.values)
             .attr('fill', 'none')
             .attr('stroke', color)
-            .attr('stroke-width', strokeWidth)
+            .attr('stroke-width', 2.5) // Standard width
             .attr('opacity', 0.8)
             .attr('d', line);
 
@@ -103,21 +114,7 @@ export async function drawLearningPoverty(containerId) {
     });
 
     // Initial Legend
-    const legendG = g.append('g').attr('class', 'legend-group');
-    const legendX = width + 20;
-
-    function drawLegend(items) {
-        legendG.selectAll('*').remove();
-        items.forEach((item, i) => {
-            const y = 20 + (i * 35);
-            legendG.append('rect')
-                .attr('x', legendX).attr('y', y - 8).attr('width', 20).attr('height', 3).attr('fill', item.color);
-            legendG.append('text')
-                .attr('x', legendX + 25).attr('y', y).attr('font-size', '14px')
-                .attr('fill', colorPalette.story.textMain).text(item.label);
-        });
-    }
-    drawLegend(legendItems);
+    drawLegend(g, legendItems, width + 20);
 
     // Threshold Line
     g.append('line')
@@ -125,28 +122,42 @@ export async function drawLearningPoverty(containerId) {
         .attr("x1", xScale(2019)).attr("x2", xScale(2019))
         .attr("stroke", colorPalette.story.crisis).attr("stroke-width", 2)
         .attr("stroke-dasharray", "5, 5").attr("opacity", 0.6);
+}
 
+// Helper for Legend
+function drawLegend(g, items, x) {
+    let legendG = g.select('.legend-group');
+    if (legendG.empty()) {
+        legendG = g.append('g').attr('class', 'legend-group');
+    } else {
+        legendG.selectAll('*').remove();
+    }
 
-    // === ANIMATION SEQUENCE ===
+    items.forEach((item, i) => {
+        const y = 20 + (i * 35);
+        legendG.append('rect')
+            .attr('x', x).attr('y', y - 8).attr('width', 20).attr('height', 3).attr('fill', item.color);
+        legendG.append('text')
+            .attr('x', x + 25).attr('y', y).attr('font-size', '14px')
+            .attr('fill', colorPalette.story.textMain).text(item.label);
+    });
+}
 
-    // 2. Wait 5 Seconds -> Trigger Color Shift
-    const delayTime = 5000;
+export function animateLearningPoverty(containerId) {
+    if (chartState.animated) return;
+    chartState.animated = true;
 
-    // Use a transition name to avoid conflicts if user scrolls away rapidly?
-    // Using simple setTimeout for logic flow, but D3 transition.delay preferred for sync.
-    // However, setTimeout prevents the block from executing if we clear SVG (step exit).
-    // Let's use d3.timeout or just transition delay.
+    const { g, scales, lineGen, regions } = chartState;
+    if (!g || g.empty()) return; // Safety check
 
-    const t = d3.transition().delay(delayTime).duration(1000);
+    const t = d3.transition().duration(1000);
 
-    // Update Lines: All -> Gray, Global -> Blue (colorPalette.categorical[1] is Dark Blue)
-    // Global ID: 'Global (Ingreso bajo y medio)'
-
+    // 1. Highlight Global Line
     g.selectAll('.region-line')
         .transition(t)
         .attr('stroke', function () {
             const region = d3.select(this).attr('data-region');
-            if (region === 'Global (Ingreso bajo y medio)') return colorPalette.categorical[1]; // Blue
+            if (region === 'Global (Ingreso bajo y medio)') return colorPalette.categorical[1]; // Dark Blue
             return colorPalette.story.context; // Gray
         })
         .attr('opacity', function () {
@@ -155,44 +166,44 @@ export async function drawLearningPoverty(containerId) {
             return 0.3; // Fade others
         });
 
-    // Update Legend
-    // For legend update, we can't easily transition text/rect D3 selection without data join.
-    // We'll just fade out/in new legend or update fill.
-    // Simplification: Repaint legend after delay.
-    setTimeout(() => {
-        // Check if chart still exists (user hasn't scrolled away)
-        if (g.select('.region-line').empty()) return;
+    // 2. Update Legend (Immediate for responsiveness, matches transition start)
+    // Reconstruct legend items based on new state
+    const currentLines = g.selectAll('.region-line').nodes();
+    const newItems = [];
 
-        const newItems = legendItems.map(item => ({
-            label: item.label,
-            color: item.label === 'Global (Ingreso bajo y medio)' ? colorPalette.categorical[1] : colorPalette.story.context
-        }));
+    // We can just query the regions again from chartState (except Latam which we add)
+    regions.forEach(r => {
+        if (r.region === 'América Latina y el Caribe') return;
+        const isGlobal = r.region === 'Global (Ingreso bajo y medio)';
+        newItems.push({
+            label: r.region,
+            color: isGlobal ? colorPalette.categorical[1] : colorPalette.story.context
+        });
+    });
+    newItems.push({ label: 'América Latina y el Caribe', color: colorPalette.story.crisisHighlight });
 
-        // Add LATAM to legend
-        newItems.push({ label: 'América Latina y el Caribe', color: colorPalette.story.crisisHighlight });
+    // Use dimensions from previous draw if possible, or just look up d3 select
+    // We stored scales which used width, but we didn't store width directly. 
+    // We can infer legendX from the existing legend or scales. xRange[1] = width.
+    const width = scales.x.range()[1];
+    drawLegend(g, newItems, width + 20);
 
-        // We only want Global, LATAM, and maybe "Others" in legend? Or keep list but grayed?
-        // User didn't specify legend behavior, but usually we emphasize main actors.
-        // Let's keep specific list but update colors.
+    // 3. Draw LATAM Line (Animated Entry)
+    const latamData = regions.find(r => r.region === 'América Latina y el Caribe');
 
-        drawLegend(newItems);
+    const latamPath = g.append('path')
+        .attr('class', 'region-line latam-line')
+        .datum(latamData.values)
+        .attr('fill', 'none')
+        .attr('stroke', colorPalette.story.crisisHighlight)
+        .attr('stroke-width', 4)
+        .attr('d', lineGen)
+        .attr('opacity', 1);
 
-        // 3. Draw LATAM Line (Animated Entry)
-        const latamData = regions.find(r => r.region === 'América Latina y el Caribe');
-        const latamPath = g.append('path')
-            .attr('class', 'region-line latam-line') // distinct class
-            .datum(latamData.values)
-            .attr('fill', 'none')
-            .attr('stroke', colorPalette.story.crisisHighlight)
-            .attr('stroke-width', 4)
-            .attr('d', line);
-
-        const len = latamPath.node().getTotalLength();
-        latamPath
-            .attr('stroke-dasharray', `${len} ${len}`)
-            .attr('stroke-dashoffset', len)
-            .transition().duration(2000).ease(d3.easeLinear)
-            .attr('stroke-dashoffset', 0);
-
-    }, delayTime);
+    const len = latamPath.node().getTotalLength();
+    latamPath
+        .attr('stroke-dasharray', `${len} ${len}`)
+        .attr('stroke-dashoffset', len)
+        .transition().duration(2000).ease(d3.easeLinear)
+        .attr('stroke-dashoffset', 0);
 }

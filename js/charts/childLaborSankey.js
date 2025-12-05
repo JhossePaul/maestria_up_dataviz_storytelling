@@ -15,8 +15,11 @@ export async function drawChildLaborSankey(containerId) {
     svg.append('text')
         .attr('x', (layout.totalWidth - layout.margin.left - layout.margin.right) / 2)
         .attr('y', 40)
-        .attr('text-anchor', 'middle').attr('font-size', '20px').attr('font-weight', '600')
-        .attr('fill', colorPalette.story.textMain).text(titleText);
+        .attr('text-anchor', 'middle')
+        .attr('font-size', '20px')
+        .attr('font-weight', '600')
+        .attr('fill', colorPalette.story.textMain)
+        .text(titleText);
 
     const response = await fetch(dataPath);
     const sData = await response.json();
@@ -171,7 +174,9 @@ export async function drawChildLaborSankey(containerId) {
         .attr('height', d => d.h);
 
     nodes.on('mouseover', function (event, d) {
-        tooltip.style('visibility', 'visible').text(`${d.tooltip}`);
+        tooltip
+            .style('visibility', 'visible')
+            .text(`${d.tooltip}`);
     }).on('mousemove', function (event) {
         tooltip.style('top', (event.pageY - 10) + 'px').style('left', (event.pageX + 10) + 'px');
     }).on('mouseout', function () {
@@ -193,7 +198,7 @@ export async function drawChildLaborSankey(containerId) {
             .attr('y', -5)
             .text(d.label)
             .attr('font-size', '14px') // Standardized
-            .attr('font-weight', '600')
+            // .attr('font-weight', '600')
             .attr('font-family', 'sans-serif')
             .attr('fill', colorPalette.story.textMain)
             .attr('alignment-baseline', 'bottom');
@@ -204,7 +209,7 @@ export async function drawChildLaborSankey(containerId) {
             .attr('y', 15)
             .text(formatMetric(d.value || 0))
             .attr('font-size', '14px') // Standardized size, bold
-            .attr('font-weight', 'bold')
+            // .attr('font-weight', 'bold')
             .attr('font-family', 'sans-serif')
             .attr('fill', colorPalette.story.textMain) // Dark Blue as requested
             .attr('alignment-baseline', 'top');
@@ -231,7 +236,7 @@ export async function drawChildLaborSankey(containerId) {
                 .attr('x', -5).attr('y', y)
                 .attr('width', w).attr('height', h)
                 .attr('fill', '#ffffff')
-                .attr('fill-opacity', 0.8) // High contrast background
+                .attr('fill-opacity', 0.6) // High contrast background
                 .attr('rx', 4);
         } catch (e) {
             // Fallback if getBBox fails (e.g. not in DOM yet)
@@ -239,7 +244,7 @@ export async function drawChildLaborSankey(containerId) {
                 .attr('x', -5).attr('y', -20)
                 .attr('width', 80).attr('height', 50)
                 .attr('fill', '#ffffff')
-                .attr('fill-opacity', 0.8)
+                .attr('fill-opacity', 0.6)
                 .attr('rx', 4);
         }
     });

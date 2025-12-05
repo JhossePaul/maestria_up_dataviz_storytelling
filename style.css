@@ -334,3 +334,36 @@ body {
 .child-green {
     filter: invert(24%) sepia(9%) saturate(2893%) hue-rotate(115deg) brightness(95%) contrast(83%);
 }
+
+/* ========================================
+   SOURCE BAR (FOOTER)
+   ======================================== */
+
+.source-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: var(--color-negro);
+    color: var(--color-blanco);
+    padding: 0.5rem 2rem;
+    z-index: 1000;
+    opacity: 0;
+    transform: translateY(100%);
+    transition: all 0.5s ease;
+    border-top: 2px solid var(--color-acento);
+}
+
+.source-bar.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.source-bar p {
+    font-size: 0.9rem;
+    margin: 0;
+    text-align: center;
+    font-family: var(--font-family);
+    font-weight: 300;
+    letter-spacing: 0.05em;
+}

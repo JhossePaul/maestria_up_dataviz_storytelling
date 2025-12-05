@@ -2168,41 +2168,80 @@ const navbar = document.getElementById('scrolly-navbar');
 const navbarTitle = document.getElementById('navbar-title');
 let currentTitle = '';
 
-// Mostrar la navbar
+// Navbar y Footer Elements
+const sourceBar = document.getElementById('source-bar');
+const sourceText = document.getElementById('source-text');
+
+// Mostrar la navbar y footer
 function showNavbar() {
     navbar.classList.add('visible');
+    sourceBar.classList.add('visible');
 }
 
-// Ocultar la navbar
+// Ocultar la navbar y footer
 function hideNavbar() {
     navbar.classList.remove('visible');
+    sourceBar.classList.remove('visible');
 }
 
-// Actualizar el título con transición suave
+// Actualizar el título y fuente con transición suave
 function updateNavbarTitle(step) {
-    const titles = [
-        "El Mounstro Invisible",
-        "La Pobreza del Aprendizaje",
-        "Retroceso en el Tiempo",
-        "Las Víctimas",
-        "La Sombra Económica",
-        "El Arma para Vencer"
-    ]
-    const newTitle = titles[step - 1];
+    // Mapeo detallado de títulos y FUENTES por paso
+    let newTitle = "";
+    let newSource = "";
 
-    if (newTitle === currentTitle) return;
+    // Convertir a número por si viene como string
+    const s = parseInt(step);
 
-    // Fade out
-    navbarTitle.classList.add('fade-out');
+    // Definir títulos y fuentes
+    if (s === 1) {
+        newTitle = "El Mounstro Invisible";
+        newSource = "Fuente: Cierres de escuelas (UNESCO, 2021) / Días efectivos (Monitor Educativo)";
+    } else if (s >= 2 && s <= 3) {
+        newTitle = "La Pobreza del Aprendizaje";
+        newSource = "Fuente: Banco Mundial (2022) / Estado de la educación global";
+    } else if (s === 4) {
+        newTitle = "Retroceso en el Tiempo";
+        newSource = "Fuente: PISA 2022 (OCDE) / Resultados México";
+    } else if (s === 5) {
+        newTitle = "La Brecha Digital";
+        newSource = "Fuente: ENDUTIH 2022 (INEGI) / Acceso a TIC en hogares";
+    } else if (s === 6) {
+        newTitle = "Las Víctimas";
+        newSource = "Fuente: OIT / Trabajo Infantil en tiempos de COVID";
+    } else if (s === 7) {
+        newTitle = "Las Víctimas";
+        newSource = "Fuente: Redim / Secretariado Ejecutivo del SNSP (2023)";
+    } else if (s === 8) {
+        newTitle = "Las Víctimas";
+        newSource = "Fuente: ENSANUT / Secretaría de Salud - Salud Mental Adolescente";
+    } else if (s >= 9 && s <= 10) {
+        newTitle = "La Sombra Económica";
+        newSource = "Fuente: Banco Mundial / IMCO - Costo Económico del Rezago";
+    } else if (s === 11) {
+        newTitle = "El Arma para Vencer";
+        newSource = "Fuente: World Bank - Recuperación y Aceleración de Aprendizajes (RAPID)";
+    }
 
-    setTimeout(() => {
-        // Cambiar texto
-        navbarTitle.textContent = newTitle;
-        currentTitle = newTitle;
+    // Actualizar TÍTULO (Navbar)
+    if (newTitle !== currentTitle) {
+        navbarTitle.classList.add('fade-out');
+        setTimeout(() => {
+            navbarTitle.textContent = newTitle;
+            currentTitle = newTitle;
+            navbarTitle.classList.remove('fade-out');
+        }, 500);
+    }
 
-        // Fade in
-        navbarTitle.classList.remove('fade-out');
-    }, 1000);
+    // Actualizar FUENTE (Footer)
+    // Simplemente actualizamos el texto, la transición es sutil por defecto
+    if (sourceText.textContent !== newSource) {
+        sourceText.style.opacity = 0;
+        setTimeout(() => {
+            sourceText.textContent = newSource;
+            sourceText.style.opacity = 1;
+        }, 500);
+    }
 }
 
 // ========================================
@@ -2229,40 +2268,72 @@ document.addEventListener('DOMContentLoaded', () => {
             // Agregar clase activa al paso actual
             response.element.classList.add('is-active');
 
+            // Asegurar que navbar y footer sean visibles
+            showNavbar();
+
             // Actualizar título de la navbar
             updateNavbarTitle(step);
 
-            // Manejar visualizaciones según el paso
+            // Manejar visualizaciones según el paso LINEAL
             switch (step) {
                 case '1':
-                    transitionToVisualization(drawCalendarHeatmap);
+                    drawCalendarHeatmap();
                     break;
+
                 case '2':
-                    // Step 2 es solo texto, mantenemos la visualización anterior o limpiamos
-                    // En este caso, el heatmap se mantiene visible pero podemos ocultarlo si se desea
+                    // Learning Poverty - Global + Highlight LATAM
+                    // El texto menciona ambos datos, así que mostramos la evolución completa
+                    drawLearningPoverty(1).then(() => {
+                        // Esperar un momento para que lean el contexto global y luego mostrar LATAM
+                        setTimeout(() => drawLearningPoverty(2), 2500);
+                    });
                     break;
+
                 case '3':
-                    // Step 3 tiene substeps
-                    const substep3 = parseInt(response.element.dataset.substep) || 1;
-                    if (!svg.select('.line-chart').node() || substep3 !== currentStep3Substep) {
-                        drawTimeSeries(substep3);
-                    }
+                    // Learning Poverty - 80% / Icons (Original Substep 3)
+                    drawLearningPoverty(3);
                     break;
+
                 case '4':
-                    // Step 4 tiene substeps
-                    const substep4 = parseInt(response.element.dataset.substep) || 1;
-                    if (!svg.select('.nodes').node() || substep4 !== currentStep4Substep) {
-                        drawSankeyDiagram(substep4);
-                    }
+                    // PISA Evolution - Trend + Drop Highlight
+                    drawTimeSeries(1).then(() => {
+                        // Animar la caída final después de ver la tendencia
+                        setTimeout(() => drawTimeSeries(2), 2500);
+                    });
                     break;
+
                 case '5':
-                    // Step 5 tiene substeps
-                    const substep5 = parseInt(response.element.dataset.substep) || 1;
-                    if (substep5 !== currentStep5Substep) {
-                        drawComparativeBarChart(substep5);
-                    }
+                    // Donut Chart (Brecha Digital - Original Substep 3 de TimeSeries)
+                    drawTimeSeries(3);
                     break;
+
                 case '6':
+                    // Sankey - Child Labor
+                    drawSankeyDiagram(1);
+                    break;
+
+                case '7':
+                    // Area Chart - Crime
+                    drawSankeyDiagram(2);
+                    break;
+
+                case '8':
+                    // Sankey - Mental Health
+                    drawSankeyDiagram(3);
+                    break;
+
+                case '9':
+                    // Economic Impact - Mincer Curve
+                    drawComparativeBarChart(1);
+                    break;
+
+                case '10':
+                    // Economic Impact - GDP Bars
+                    drawComparativeBarChart(2);
+                    break;
+
+                case '11':
+                    // Solution - RAPID
                     transitionToVisualization(drawRAPIDPillars);
                     break;
             }
@@ -2272,18 +2343,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Solo actualizar colores si estamos en Step 1
             if (step === '1') {
-                // response.progress va de 0 a 1 dentro de cada substep
-                // Necesitamos calcular el progreso total dentro del Step 1
-                const substep = parseInt(response.element.dataset.substep);
-                const totalSubsteps = 2;
-
-                // Calcular progreso global (0-1 a través de todos los 4 substeps)
-                const globalProgress = ((substep - 1) + response.progress) / totalSubsteps;
-
-                // Actualizar colores con el progreso global
                 if (svg.select('rect.day').node()) {
-                    updateCalendarColors(globalProgress);
+                    updateCalendarColors(response.progress);
                 }
+            }
+        })
+        .onStepExit(response => {
+            const step = response.element.dataset.step;
+            const direction = response.direction;
+
+            // Ocultar barras al salir de la sección de scrolly
+            // 1. Salir hacia arriba desde el paso 1 (ir al Intro)
+            if (step === '1' && direction === 'up') {
+                hideNavbar();
+            }
+
+            // 2. Salir hacia abajo desde el paso 11 (ir al Outro)
+            if (step === '11' && direction === 'down') {
+                hideNavbar();
             }
         });
 
